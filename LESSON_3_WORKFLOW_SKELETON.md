@@ -134,9 +134,9 @@ def save_step_output(blog_id: str, step_name: str, content: str) -> None:
 
 1. Rename `read_draft` → `read_draft_tool`
 2. Change return type to `dict`
-3. Return a dict with keys: `{"draft_content": ..., "blog_id": ..., "path": ...}`
+3. Return a dict with keys: `{"status": "success", "content": ..., "blog_id": ..., "path": ...}`
 
-Do the same for `save_step_output` → `save_step_output_tool`
+Do the same for `save_step_output` → `save_step_tool`
 
 **Example:**
 ```python
@@ -151,7 +151,8 @@ def read_draft_tool(blog_id: str) -> dict:
         content = f.read()
 
     return {
-        "draft_content": content,
+        "status": "success",
+        "content": content,
         "blog_id": blog_id,
         "path": str(draft_path),
     }
@@ -159,32 +160,20 @@ def read_draft_tool(blog_id: str) -> dict:
 
 ---
 
-### Task 1.3.2: Add a `split_draft_tool` Function
+### Task 1.3.2: ~~Add a `split_draft_tool` Function~~ [REMOVED]
 
-**Purpose:** This tool will be used in Step 1 to split the draft into `draft_ok.md` and `draft_not_ok.md`.
+**Architectural Decision:** After analysis, we determined that `split_draft_tool` violates the separation of concerns between tools and agents:
+- **Tools should be mechanical** (file I/O, API calls)
+- **Agents should be intelligent** (semantic analysis, decision-making)
 
-**Your task:** Write a function with this signature:
-```python
-def split_draft_tool(blog_id: str, draft_content: str, outline: str) -> dict:
-    """
-    Splits draft into content matching outline (ok) and unused content (not_ok).
+Splitting draft content based on an outline requires semantic understanding - that's **agent work**, not **tool work**.
 
-    For now, this is a PLACEHOLDER - just save the full draft as draft_ok.
-    Full splitting logic will be implemented in Phase 2.1.
+**Solution:**
+- Use `save_step_tool` directly in the workflow (can be called multiple times)
+- Let Scribr agent do the intelligent splitting in Phase 2.1
+- Keep tools simple and focused
 
-    Returns:
-        dict with keys:
-            - status: "success"
-            - draft_ok_path: Path to draft_ok.md
-            - draft_not_ok_path: Path to draft_not_ok.md
-    """
-```
-
-**Implementation hint:**
-- Create output directory: `OUTPUTS_DIR / blog_id`
-- Save `draft_content` to `draft_ok.md`
-- Save a placeholder message to `draft_not_ok.md`
-- Return paths as strings in the dict
+**This task is now complete by removal.** ✅
 
 ---
 
@@ -204,7 +193,7 @@ from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.google_search_tool import google_search
 
 from blogger.agents import scribr, linguist
-from blogger.tools import read_draft_tool, save_step_output_tool, split_draft_tool
+from blogger.tools import read_draft_tool, save_step_tool
 
 
 orchestrator = Agent(
@@ -217,10 +206,12 @@ orchestrator = Agent(
     ## Your Workflow
 
     **Step 1: Draft to Outlines**
-    - Use `read_draft_tool` to load draft
+    - Use `read_draft_tool` to load the raw draft
     - Collaborate with Scribr (scribr sub-agent) to create outline
-    - Use `split_draft_tool` to separate content
-    - Save outlines.md, draft_ok.md, draft_not_ok.md
+    - Ask Scribr to analyze which draft content matches the outline
+    - Use `save_step_tool` to save outline as "outlines"
+    - Use `save_step_tool` to save matching content as "draft_ok"
+    - Use `save_step_tool` to save unused content as "draft_not_ok"
 
     **Step 2: Organization**
     ...
@@ -235,8 +226,7 @@ orchestrator = Agent(
     ],
     tools=[
         FunctionTool(read_draft_tool),
-        FunctionTool(save_step_output_tool),
-        FunctionTool(split_draft_tool),
+        FunctionTool(save_step_tool),
         google_search,
     ],
 )
@@ -256,10 +246,11 @@ Before you submit your code:
 
 - [ ] All tools return `dict` (not `str` or `None`)
 - [ ] Tool names end with `_tool` for clarity
-- [ ] `split_draft_tool` creates both `draft_ok.md` and `draft_not_ok.md`
+- [ ] Tools are mechanical (file I/O only), not intelligent
 - [ ] `orchestrator` agent references all tools via `FunctionTool()`
 - [ ] `orchestrator` instruction describes all 6 steps clearly
 - [ ] Sub-agents (`scribr`, `linguist`) are in the `sub_agents` list
+- [ ] Workflow delegates intelligent work (like content analysis) to sub-agents
 
 ---
 

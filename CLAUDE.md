@@ -52,12 +52,15 @@ class Workflow:
 
 **Tool Functions Return Dicts:**
 ```python
-# ✅ Correct
+# ✅ Correct - returns dict with status
 def read_draft_tool(blog_id: str) -> dict:
-    content = Path(...).read_text()
-    return {"draft_content": content, "path": str(path)}
+    try:
+        content = Path(...).read_text()
+        return {"status": "success", "content": content, "path": str(path)}
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to read: {e}"}
 
-# ❌ Wrong
+# ❌ Wrong - returns string, no error handling
 def read_draft(blog_id: str) -> str:
     return Path(...).read_text()
 ```
@@ -67,6 +70,68 @@ def read_draft(blog_id: str) -> str:
 - **Sub-agents as specialists:** Scribr and Linguist are invoked by the orchestrator when needed
 - **State management:** Agents communicate via `output_key` and `context.session.state`
 - **Tool wrapping:** Python functions wrapped with `FunctionTool()` for automatic schema generation
+
+### Tool Creation Guidelines (Golden Rules)
+
+**1. Docstrings are User Manuals:**
+- LLM reads docstrings to understand tool usage
+- Describe WHAT the tool does (action), not HOW it's implemented
+- Include when/why to use the tool
+- Provide clear examples of arguments
+
+**2. Error Handling via Dicts:**
+- Return `{"status": "success", ...}` for successful operations
+- Return `{"status": "error", "message": "Actionable description"}` for failures
+- Make error messages actionable (tell agent how to fix)
+- Never raise exceptions - ADK framework expects dict returns
+
+**3. Consistent Return Structure:**
+```python
+# ✅ Correct - with error handling
+def read_draft_tool(blog_id: str) -> dict:
+    """
+    Retrieves the raw draft content for a blog post.
+
+    Use this to load the initial draft markdown file that needs
+    to be processed through the blog writing pipeline.
+
+    Args:
+        blog_id: Unique identifier for the blog (e.g., "my-ai-journey-2")
+
+    Returns:
+        Success: {"status": "success", "content": "...", "path": "..."}
+        Error: {"status": "error", "message": "Actionable error description"}
+    """
+    draft_path = INPUTS_DIR / blog_id / draft_filename
+    if not draft_path.exists():
+        return {
+            "status": "error",
+            "message": f"Draft not found for '{blog_id}'. Check inputs/{blog_id}/draft.md exists"
+        }
+
+    try:
+        content = Path(draft_path).read_text()
+        return {"status": "success", "content": content, "path": str(draft_path)}
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to read draft: {e}"}
+
+# ❌ Wrong - raises exceptions, no status dict
+def read_draft(blog_id: str) -> str:
+    if not path.exists():
+        raise FileNotFoundError("Not found")
+    return Path(...).read_text()
+```
+
+**4. Tool Granularity:**
+- Create focused tools for specific tasks (e.g., `read_draft_tool`, `save_step_tool`)
+- Avoid monolithic, complex functions
+- Each tool should do one thing well
+
+**5. Tools vs. Agents - Clear Separation:**
+- **Tools are mechanical:** File I/O, API calls, calculations, data transformations
+- **Agents are intelligent:** Semantic analysis, content understanding, decision-making, reasoning
+- If a tool would need to "understand" content or make judgment calls, that work belongs in an agent
+- Example: Splitting a draft based on semantic matching to an outline = agent work, not tool work
 
 ### Multi-Agent System
 
@@ -176,7 +241,7 @@ Agent instructions are in `blogger/instructions/*.md` files. See those files for
 ## Important Constraints
 
 1. **No Documentation Files:** Never create markdown files proactively (except when explicitly requested by the Teacher)
-2. **Minimal Error Handling:** Only check file existence and raise descriptive exceptions
+2. **Error Handling via Dicts:** Return `{"status": "error", "message": "..."}` for failures, never raise exceptions from tools
 3. **No Over-Engineering:** Implement only what's requested in the current lesson
 4. **Prefer Editing:** Always edit existing files rather than creating new ones unless required
 5. **Follow the Protocol:** Wait for Teacher's task specification before coding
