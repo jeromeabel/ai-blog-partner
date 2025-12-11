@@ -1,3 +1,5 @@
+# My AI Journey - part 2 - A Balanced Shift, Promises & Reality
+
 IDEES.
 - productivity/metrique: comment mesurer la productivité ?
 - problème: sert à justifier des décisions: biais de confirmation, ne fait pas confiance aux autres membres de l'équipe -> CONFIANCE, DERESPONSABILISER
@@ -28,6 +30,17 @@ Everybody Else Is Doing It, So Why Can't I?
 https://www.linkedin.com/pulse/fear-learning-vancouver-clarifying-journey-realities-rand-hendriksen-xzsbc/
 Like a shag carpet drenched in spilled soda pop, this looming dread that _everyone else is doing it, so why can't I_ formed the subtle but uncomfortably ever-present base for so many conversations I started wondering if it was I who brought the doom (wouldn't be the first time). So I listened, and observed, and confirmed that no, it wasn't me. It was everyone.
 
+
+FROM: https://newsletter.techworld-with-milan.com/p/the-trends-9-typescript-just-became
+    95% of developers use AI, yet 30% don’t trust the code it writes. DORA’s 2025 report reveals that teams are moving faster while breaking more things (hello, outages). AI amplifies whatever system you have. Strong teams with good practices get better. Dysfunctional teams with fragmented workflows accelerate the chaos.
+
+    TypeScript has just become the most used language on GitHub. It is projected to grow by 1 million contributors in 2025. Also, India has overtaken the US in open-source contributions.
+
+    89% of developers use AI daily, but only 24% design APIs for it. The 2025 State of the API Report by Postman exposes a critical gap: developers are AI-native, but APIs aren’t built for AI agents. Also, 70% are aware of MCP, but only 10% use it.
+
+    AI is moving from software to the physical world. InfoQ’s trends report shows the next frontier: AI entering robotics and real-world systems. Google’s Gemini Robotics and NVIDIA’s AI-to-deployment pipeline are bringing language models into physical environments. This isn’t just software anymore.
+
+    ThoughtWorks flags the AI antipatterns to avoid. What’s working: MCP, agentic workflows, curated shared instructions. What’s not: AI-accelerated shadow IT, naive API-to-MCP conversion, text-to-SQL failures.
 
 AI GEN MYTHS
 https://www.linkedin.com/pulse/ai-bubble-bursting-shocking-mit-study-key-from-gilded-ryan-levesque-uytfe
