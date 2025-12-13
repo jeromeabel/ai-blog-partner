@@ -156,6 +156,141 @@ def read_draft(blog_id: str) -> str:
    - Provides educational feedback on grammar patterns
    - Model: `gemini-3-pro-preview`
 
+4. **Validation Agents** (`blogger/validation_checkers.py`)
+   - Custom `BaseAgent` validators for quality control
+   - Used in LoopAgent pattern for automatic retries
+   - `OutlineValidationChecker` - validates outline structure
+   - `ContentSplitValidationChecker` - validates content integrity
+
+### Validation & Quality Control Patterns
+
+**LoopAgent Pattern (The Polisher):**
+```python
+from google.adk.agents import LoopAgent
+
+robust_outline_step = LoopAgent(
+    name="robust_outline_step",
+    sub_agents=[
+        outline_creator,           # Worker: creates the outline
+        OutlineValidationChecker   # Validator: checks quality
+    ],
+    max_iterations=3  # Retry up to 3 times
+)
+```
+
+**Execution Flow:**
+1. Worker agent produces output → writes to session state
+2. Validator agent checks quality
+   - If valid → `Event(actions=EventActions(escalate=True))` → exits loop ✅
+   - If invalid → `Event(author=self.name)` → retry (back to step 1) 🔄
+3. Repeat until valid OR max_iterations reached
+
+**BaseAgent Validator Pattern:**
+```python
+from google.adk.agents import BaseAgent
+from google.adk.events import Event, EventActions
+
+class OutlineValidationChecker(BaseAgent):
+    async def _run_async_impl(self, ctx):
+        # Call pure function for validation logic
+        is_valid, reasons = check_outline_structure(
+            ctx.session.state.get("blog_outline", "")
+        )
+
+        if is_valid:
+            # ✅ Quality passed - exit loop
+            yield Event(
+                author=self.name,
+                actions=EventActions(escalate=True)  # Signal: STOP LOOP
+            )
+        else:
+            # ❌ Quality failed - continue loop (retry)
+            yield Event(
+                author=self.name,
+                content=types.Content(parts=[
+                    types.Part(text=f"Validation failed: {', '.join(reasons)}")
+                ])
+            )
+```
+
+**Validation Utils Pattern:**
+- Extract validation logic to pure functions in `blogger/validation_utils.py`
+- Keep validators thin (just ADK integration)
+- Enable easy unit testing without mocking ADK runtime
+
+```python
+# blogger/validation_utils.py (pure functions - easy to test)
+def check_outline_structure(outline_text: str) -> tuple[bool, list[str]]:
+    """Check outline has required structure."""
+    # Validation logic here
+    return is_valid, reasons
+
+# blogger/validation_checkers.py (ADK integration)
+from blogger.validation_utils import check_outline_structure
+
+class OutlineValidationChecker(BaseAgent):
+    async def _run_async_impl(self, ctx):
+        is_valid, reasons = check_outline_structure(...)  # Use pure function
+        # Yield appropriate Event
+```
+
+**Why Separate Utils:**
+- ✅ Easy to unit test (no ADK mocking needed)
+- ✅ Reusable across validators
+- ✅ No async complexity for logic
+- ✅ Clear separation: business logic vs. framework integration
+
+### Testing Patterns
+
+**Test-Driven Development:**
+- Write comprehensive unit tests for all validation logic
+- Aim for 100% code coverage
+- Test edge cases: empty input, whitespace, case sensitivity, duplicates
+
+**Project Testing Structure:**
+```
+tests/
+├── __init__.py
+└── test_validation_utils.py  # Unit tests for pure functions
+```
+
+**Running Tests:**
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=blogger --cov-report=term-missing
+
+# Generate HTML coverage report
+pytest tests/ --cov=blogger --cov-report=html
+```
+
+**Test Organization:**
+```python
+import pytest
+from blogger.validation_utils import normalize_and_split
+
+class TestNormalizeAndSplit:
+    """Group related tests in classes."""
+
+    def test_splits_by_double_newline(self):
+        """Descriptive test names."""
+        text = "Intro\n\nBody\n\nConclusion"
+        result = normalize_and_split(text)
+        assert result == {"intro", "body", "conclusion"}
+
+    def test_empty_string(self):
+        """Test edge cases."""
+        result = normalize_and_split("")
+        assert result == set()
+```
+
+**Dependencies:**
+```bash
+pip install pytest pytest-cov  # Add to requirements
+```
+
 ### Agent Instructions Pattern
 
 **Agent instructions are stored as separate Markdown files** (`blogger/instructions/`), not inline strings:

@@ -40,6 +40,36 @@
 *   **Orchestrator Pattern:** The orchestrator agent manages workflow via natural language `instruction` parameter, not imperative Python code. It delegates intelligence to sub-agents and uses tools for mechanical operations. The instruction describes what to do, and the LLM figures out how.
 *   **Workflow as Natural Language:** Agent instructions are prompts, not code. Describe steps with "Use X tool", "Collaborate with Y agent", "Output Z file". The orchestrator interprets and executes based on this description.
 
+### 🎓 Lesson 2.1: LoopAgent Pattern & Validation Checkers
+*   **BaseAgent Pattern:** Custom agents extend `BaseAgent` and implement `async def _run_async_impl(self, ctx: InvocationContext) -> AsyncGenerator[Event, None]`. This is the foundation for all custom agent logic in ADK.
+*   **Loop Termination Signal:** Use `yield Event(author=self.name, actions=EventActions(escalate=True))` to signal LoopAgent to exit successfully. The `escalate=True` flag tells the LoopAgent "quality check passed, stop looping."
+*   **Continue Loop Signal:** Use `yield Event(author=self.name, content=...)` without `escalate` to signal LoopAgent to retry. This lets the worker agent try again.
+*   **Session State Access:** Read from session state with `ctx.session.state.get("key", default)`. This is how agents share data within a single conversation session (short-term memory).
+*   **Event Structure:** Events must have `author=self.name`, optional `content` (types.Content with types.Part for messages), and optional `actions` (EventActions for control signals like escalate).
+*   **EventActions Usage:** `EventActions(escalate=True)` goes INSIDE the Event, not as a direct parameter. Common mistake: `Event(escalate=True)` ❌ vs `Event(actions=EventActions(escalate=True))` ✅
+*   **Validation Best Practices:**
+  - Check existence before accessing data to avoid KeyError
+  - Provide specific, actionable error messages that help debugging
+  - Handle edge cases (empty data, type mismatches, zero-length inputs)
+  - Validate quality criteria (structure, completeness), not just existence
+  - Use defensive programming (isinstance checks, default values)
+*   **LoopAgent Quality Control:** The "Polisher" pattern wraps a worker agent + validator. Worker creates output → Validator checks quality → If valid, escalate=True exits loop; if invalid, retry up to max_iterations.
+
+### 🎓 Lesson 2.1.1 (Extended): Testing & Refactoring
+*   **Extract Pure Functions for Testability:** Move validation logic from class methods to module-level pure functions. This enables easy unit testing without mocking ADK runtime.
+*   **Separation of Concerns:** Keep business logic (validation rules) separate from framework integration (ADK agents). Functions do the logic, agents handle Events/state.
+*   **Utils Module Pattern:** Create `validation_utils.py` for reusable validation functions. Import into checkers with `from blogger.validation_utils import func`.
+*   **Comprehensive Unit Testing:** Write tests for edge cases (empty input, whitespace, case sensitivity, duplicates, missing data). Aim for 100% code coverage.
+*   **Pytest Basics:** Use `pytest` for test discovery, `assert` for assertions, class-based test organization (`class TestFunctionName`), and fixtures for setup/teardown.
+*   **Test-Driven Development Benefits:** Writing tests reveals edge cases early (e.g., "concluding" vs "conclusion" substring matching). Tests serve as living documentation.
+*   **Coverage Analysis:** Use `pytest --cov=module --cov-report=term-missing` to identify untested code paths. 100% coverage ensures all logic branches are validated.
+*   **Pure Functions Advantages:**
+  - Easy to test (no mocking needed)
+  - Reusable across validators
+  - No async complexity for logic
+  - Clear input/output contracts
+*   **Test Organization:** Group related tests in classes (`TestNormalizeAndSplit`, `TestCheckContentIntegrity`). Use descriptive test names (`test_detects_lost_content`).
+
 ## 🗺️ Roadmap
 
 ### Phase 1: Foundation & Tools 🛠️
@@ -51,7 +81,10 @@
   - [x] **1.3.3:** Create `blogger/workflow.py` orchestrator agent
 
 ### Phase 2: Core Logic Implementation ⚙️
-- [ ] **2.1 Step 1 (Drafting):** Implement `draft_to_outlines` logic.
+- [ ] **2.1 Step 1 (Draft to Outlines):** Implement outline creation with LoopAgent pattern.
+  - [x] **2.1.1:** Create `blogger/validation_checkers.py` with `OutlineValidationChecker` and `ContentSplitValidationChecker`
+  - [ ] **2.1.2:** Create `blogger/step_agents/step_1_outline.py` with worker agents and LoopAgent wrappers
+  - [ ] **2.1.3:** Update `blogger/workflow.py` to use the new step agents
 - [ ] **2.2 Step 2 (Organizing):** Implement `outlines_to_draft_organized` logic.
 - [ ] **2.3 Step 3 (Writing Loop):** Implement the iterative section writing with both agents.
 

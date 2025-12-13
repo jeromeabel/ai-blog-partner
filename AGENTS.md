@@ -35,6 +35,51 @@ This project implements a multi-agent system to assist in writing technical blog
     *   Executes the 6-step workflow.
     *   Handles file operations (reading drafts, splitting files, saving outputs).
     *   Delegates tasks to Scribr and Linguist.
+    *   Uses LoopAgents for automatic quality retries.
+
+### 4. **Validation Agents**
+*Quality Control via LoopAgent Pattern*
+
+These custom `BaseAgent` validators ensure output quality through automatic retries:
+
+#### **OutlineValidationChecker**
+*   **Role:** Validates blog outline structure before proceeding.
+*   **Quality Criteria:**
+    *   Outline has at least 3 sections (## markdown headings)
+    *   Contains "Introduction" section
+    *   Contains "Conclusion" section
+*   **Behavior:**
+    *   Returns `Event(actions=EventActions(escalate=True))` if valid → exits LoopAgent
+    *   Returns regular `Event` if invalid → triggers retry (up to max_iterations)
+
+#### **ContentSplitValidationChecker**
+*   **Role:** Validates content redistribution integrity.
+*   **Quality Criteria:**
+    *   Both `draft_ok` and `draft_not_ok` exist
+    *   Combined length ≈ original draft (±10%)
+    *   All content from raw draft preserved (no lost paragraphs)
+    *   No new content added (LLM copy-pastes, doesn't generate)
+    *   No duplicate content between files
+*   **Behavior:**
+    *   Uses `blogger/validation_utils.py` for paragraph-level set comparison
+    *   Provides actionable error messages (e.g., "Lost content: 2 paragraphs missing")
+    *   Escalates on success, retries on failure
+
+**Implementation Pattern (LoopAgent):**
+```python
+robust_outline_step = LoopAgent(
+    sub_agents=[
+        outline_creator,           # Worker: creates the outline
+        OutlineValidationChecker   # Validator: checks quality
+    ],
+    max_iterations=3  # Retry up to 3 times
+)
+```
+
+**Why LoopAgent?**
+- **Automatic Retries:** If LLM produces invalid output, validator triggers retry
+- **Quality Assurance:** Ensures outputs meet criteria before proceeding to next step
+- **Graceful Degradation:** Falls back to best attempt after max_iterations
 
 ---
 
@@ -43,11 +88,19 @@ This project implements a multi-agent system to assist in writing technical blog
 The system operates on a linear but iterative pipeline:
 
 ### **Step 1: Draft to Outlines**
-*   **Input:** Raw draft from `inputs/<blog_id>`.
+*   **Input:** Raw draft from `inputs/<blog_id>/draft.md`.
 *   **Action:**
-    1.  **Scribr** analyzes the draft and collaborates with the user to create an outline.
-    2.  **Orchestrator** splits the raw draft into `draft_ok.md` (content fitting the outline) and `draft_not_ok.md` (unused content for future use).
+    1.  **`robust_outline_step` (LoopAgent):** Scribr analyzes the draft and creates an outline.
+        *   Worker: `outline_creator` (uses Scribr sub-agent + `read_draft_tool`)
+        *   Validator: `OutlineValidationChecker` (checks 3+ sections, intro, conclusion)
+        *   Retries up to 3 times if validation fails
+    2.  **`robust_content_split_step` (LoopAgent):** Scribr splits content into matching/unused.
+        *   Worker: `content_splitter` (uses Scribr sub-agent)
+        *   Validator: `ContentSplitValidationChecker` (checks integrity: no lost/added/duplicated content)
+        *   Retries up to 2 times if validation fails
+    3.  **Orchestrator** saves outputs using `save_step_tool`.
 *   **Output:** `outlines.md`, `draft_ok.md`, `draft_not_ok.md`.
+*   **Quality Assurance:** Both LoopAgents automatically retry on validation failure, ensuring high-quality outputs.
 
 ### **Step 2: Organization**
 *   **Input:** `outlines.md`, `draft_ok.md`.
