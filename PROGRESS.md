@@ -70,6 +70,22 @@
   - Clear input/output contracts
 *   **Test Organization:** Group related tests in classes (`TestNormalizeAndSplit`, `TestCheckContentIntegrity`). Use descriptive test names (`test_detects_lost_content`).
 
+### 🎓 Lesson 2.1.2: Agent Instructions & Multi-Agent Delegation
+*   **Agent Instruction Structure (Official Pattern):** Follow the ADK-recommended hierarchy: (1) Role definition ("You are..."), (2) Primary task ("Your task is..."), (3) Tool guidance (when/why to use each tool), (4) Constraints (scope limitations), (5) Output format (explicit specification).
+*   **Tool Reference Pattern:** Never just list tools. Explain WHEN and WHY to use each tool with specific conditions. Example: "Use `read_draft_tool` to load the raw draft content" (good) vs "You have tools: read_draft_tool" (bad). Tool docstrings are the primary source of truth for the LLM.
+*   **Sub-Agent Delegation Pattern:** In coordinator instructions, explicitly state delegation triggers: "Collaborate with Scribr to analyze..." or "Use the `robust_blog_planner` tool to..." (ADK treats sub-agents as invokable tools). Include clear `description` fields on sub-agents to guide routing decisions.
+*   **Session State Access:** Reference state keys naturally in instructions: "Read the `blog_outline` from session state" or use template syntax `{key_name}` for interpolation. ADK automatically replaces `{var}` with `session.state['var']`.
+*   **Output Format Specification:** Show the EXACT expected format with examples (few-shot learning). Use markdown code blocks to demonstrate structure. This reduces hallucination and ensures consistency.
+*   **Worker vs Coordinator Instructions:** Workers have narrow scope ("Your ONLY task is..."), focus on direct execution, and use domain tools. Coordinators focus on routing/delegation ("Use X agent when...", "Delegate to Y for..."), make high-level decisions, and orchestrate workflow.
+*   **Variable Naming Convention:** Agent variable names must match the `name=""` parameter exactly. Example: `outline_creator = Agent(name="outline_creator", ...)`. This convention ensures consistency in logs, debugging, and imports.
+*   **LLM Interpretation Hierarchy:** The LLM learns from (1) Tool docstrings (primary), (2) Agent descriptions (primary for delegation), (3) Instruction text (behavioral guidance), (4) Tool return values (feedback loop). All layers must be coherent.
+*   **Markdown Structure Aids Comprehension:** Use headers (`##`), numbered lists, and bullet points in instructions. This improves LLM parsing and creates hierarchical understanding of tasks.
+*   **Agent Hierarchy is Dynamic:** There's no fixed "main agent." Hierarchy is call-stack based: when `outline_creator` runs, IT is the boss and Scribr is its worker. When `orchestrator` runs, IT is the boss and `outline_creator` is its worker. Think of it like nested function calls.
+*   **max_iterations Behavior:** When LoopAgent reaches max_iterations without `escalate=True`, it stops gracefully (no error), preserves the last output in session state, and returns control to parent. This is a safety net to prevent infinite loops while forcing forward progress.
+*   **Explicit Constraints Prevent Scope Creep:** Use "ONLY" language and explicit negative constraints ("Do not engage in...") to keep agents focused. Vague language like "if appropriate" leads to unpredictable behavior.
+*   **Delegation vs Self-Contained Agents:** Both patterns are valid. Use delegation when reusing specialized expertise (e.g., Scribr's writing rules). Use self-contained instructions when the task is mechanical and doesn't need the specialist's full knowledge base.
+*   **Official ADK Resources:** [Agent Team Tutorial](https://google.github.io/adk-docs/tutorials/agent-team/), [LLM Agents](https://google.github.io/adk-docs/agents/llm-agents/), [Multi-Agent Systems](https://google.github.io/adk-docs/agents/multi-agents/)
+
 ## 🗺️ Roadmap
 
 ### Phase 1: Foundation & Tools 🛠️
@@ -83,7 +99,7 @@
 ### Phase 2: Core Logic Implementation ⚙️
 - [ ] **2.1 Step 1 (Draft to Outlines):** Implement outline creation with LoopAgent pattern.
   - [x] **2.1.1:** Create `blogger/validation_checkers.py` with `OutlineValidationChecker` and `ContentSplitValidationChecker`
-  - [ ] **2.1.2:** Create `blogger/step_agents/step_1_outline.py` with worker agents and LoopAgent wrappers
+  - [x] **2.1.2:** Create `blogger/step_agents/step_1_outline.py` with worker agents and LoopAgent wrappers
   - [ ] **2.1.3:** Update `blogger/workflow.py` to use the new step agents
 - [ ] **2.2 Step 2 (Organizing):** Implement `outlines_to_draft_organized` logic.
 - [ ] **2.3 Step 3 (Writing Loop):** Implement the iterative section writing with both agents.

@@ -618,6 +618,173 @@ from typing import AsyncGenerator
 
 ---
 
+## 📝 Deep Dive: Writing Effective Agent Instructions
+
+### Official ADK Instruction Pattern
+
+Based on [Agent Team Tutorial](https://google.github.io/adk-docs/tutorials/agent-team/) and [LLM Agents](https://google.github.io/adk-docs/agents/llm-agents/), follow this structure:
+
+**Recommended Hierarchy:**
+1. **Role Definition** - "You are a [role/persona]..."
+2. **Primary Task** - "Your task is to..." or "Your ONLY task is..."
+3. **Tool Guidance** - When/why to use each tool (not just listing)
+4. **Constraints** - Scope limitations, negative constraints ("Do not...")
+5. **Output Format** - Explicit specification with examples
+
+### Pattern: Worker Agent (Direct Execution)
+
+```python
+agent = Agent(
+    name="content_splitter",
+    instruction="""
+    You are a content analyzer. Your task is to split the raw draft.
+
+    Steps:
+    1. Use the `read_draft_tool` to load the raw draft content
+    2. Read the `blog_outline` from session state
+    3. Identify which content matches the outline (draft_ok)
+    4. Identify unused content (draft_not_ok)
+
+    Output a dictionary with two keys:
+    - "draft_ok": Content matching outline
+    - "draft_not_ok": Unused content
+
+    Example output:
+    {
+        "draft_ok": "...",
+        "draft_not_ok": "..."
+    }
+    """,
+    tools=[FunctionTool(read_draft_tool)],
+    output_key="content_split",
+)
+```
+
+**Key Points:**
+- ✅ Clear role and task
+- ✅ Numbered steps for clarity
+- ✅ Tool usage explained (when/why: "Use X to load...")
+- ✅ Session state reference ("Read `key` from session state")
+- ✅ Output format shown with example (few-shot learning)
+
+### Pattern: Coordinator Agent (Delegation)
+
+```python
+orchestrator = Agent(
+    name="orchestrator",
+    instruction="""
+    You are the Blog Pipeline Orchestrator.
+
+    Your workflow:
+    1. Use `robust_outline_step` to create the blog outline
+    2. Use `robust_content_split_step` to split content
+    3. Delegate to `scribr` for writing tasks
+    4. Use `save_step_tool` to save outputs
+
+    NEVER: Perform writing or editing yourself - delegate to specialists.
+    """,
+    sub_agents=[robust_outline_step, scribr],
+    tools=[FunctionTool(save_step_tool)],
+)
+```
+
+**Key Points:**
+- ✅ Focus on routing/delegation ("Use X agent to...")
+- ✅ Explicit delegation triggers
+- ✅ Negative constraints to prevent scope creep
+
+### How Tools are Referenced
+
+**❌ Wrong: Just listing tools**
+```
+"You have access to: read_draft_tool, save_step_tool"
+```
+
+**✅ Right: Explain when/why**
+```
+"Use `read_draft_tool` to load the raw draft content.
+Use `save_step_tool` to persist outputs to disk."
+```
+
+**Why this matters:** The LLM learns from:
+1. Tool docstrings (primary source of truth)
+2. Instruction guidance (when/why to use)
+3. Tool return values (feedback loop)
+
+### How Sub-Agents are Referenced
+
+**Pattern 1: Explicit delegation**
+```
+"Collaborate with Scribr to analyze the draft and create an outline."
+```
+
+**Pattern 2: Tool-like invocation**
+```
+"Use the `robust_blog_planner` tool to generate the outline."
+```
+
+Both work! ADK treats sub-agents as invokable components.
+
+### Session State Access
+
+**Pattern 1: Natural language reference**
+```
+"Read the `blog_outline` from session state."
+```
+
+**Pattern 2: Template interpolation (advanced)**
+```
+instruction="Improve this draft:\n\n{draft_content}\n\nFocus on {focus_area}."
+```
+ADK replaces `{key}` with `session.state['key']` automatically.
+
+### Output Format Specification
+
+**Best Practice: Show exact structure**
+```
+"Output a dictionary with two keys:
+- \"draft_ok\": String containing content that aligns with the outline
+- \"draft_not_ok\": String containing unused content
+
+Example output format:
+{
+    \"draft_ok\": \"Content that matches...\",
+    \"draft_not_ok\": \"Remaining content...\"
+}
+"
+```
+
+This is **few-shot learning** - showing the LLM exactly what you want reduces hallucination.
+
+### Worker vs Coordinator Instructions
+
+| Aspect | Worker Agent | Coordinator Agent |
+|--------|--------------|-------------------|
+| **Scope** | Narrow, focused ("Your ONLY task is...") | Broad, orchestration |
+| **Focus** | Direct execution | Routing/delegation |
+| **Tools** | Domain-specific | Minimal, for coordination |
+| **Sub-agents** | Usually none or 1-2 specialists | Multiple workers |
+| **Length** | Shorter, specific | Longer, workflow steps |
+| **Example** | `outline_creator`, `content_splitter` | `orchestrator` |
+
+### Common Pitfalls
+
+1. **Vague conditions:** "if appropriate" → Use specific triggers: "when user asks about X"
+2. **Missing output format:** Agent hallucinates structure → Show exact format with example
+3. **Tool listing without context:** Agent doesn't know when to use them → Explain when/why
+4. **Scope creep:** Agent does too much → Use "ONLY" and negative constraints
+5. **Conflicting instructions:** "Use tools" + output_schema (tools disabled) → Choose one
+
+### Official ADK Examples
+
+Study these for real-world patterns:
+- `inputs/examples/blog-writer/blogger_agent/agent.py` - Coordinator pattern
+- `inputs/examples/blog-writer/blogger_agent/sub_agents/blog_planner.py` - Worker pattern
+- [Agent Team Tutorial](https://google.github.io/adk-docs/tutorials/agent-team/) - Official walkthrough
+- [LLM Agents](https://google.github.io/adk-docs/agents/llm-agents/) - Core concepts
+
+---
+
 ## 💡 Pro Tips
 
 1. **Start with validation checkers** - Simplest to implement (pure logic, no LLM)
@@ -626,6 +793,10 @@ from typing import AsyncGenerator
 4. **Read official docs** - Understand why patterns work, not just how
 5. **Keep agents focused** - One responsibility per agent
 6. **Helpful error messages** - Make Events descriptive for debugging
+7. **Follow the instruction structure** - Role → Task → Tools → Constraints → Output
+8. **Show, don't tell** - Include examples of expected output format (few-shot learning)
+9. **Variable names = name parameter** - `outline_creator = Agent(name="outline_creator", ...)`
+10. **Explain tool WHEN/WHY** - Not just listing them
 
 ---
 
