@@ -86,6 +86,17 @@
 *   **Delegation vs Self-Contained Agents:** Both patterns are valid. Use delegation when reusing specialized expertise (e.g., Scribr's writing rules). Use self-contained instructions when the task is mechanical and doesn't need the specialist's full knowledge base.
 *   **Official ADK Resources:** [Agent Team Tutorial](https://google.github.io/adk-docs/tutorials/agent-team/), [LLM Agents](https://google.github.io/adk-docs/agents/llm-agents/), [Multi-Agent Systems](https://google.github.io/adk-docs/agents/multi-agents/)
 
+### 🎓 Lesson 2.1.3: Session State Strategy & Functional Architecture
+*   **output_key vs save_step_tool Strategy:** Two different memory systems: `output_key` for session state (agent-to-agent communication, temporary, automatic) vs `save_step_tool` for file persistence (user deliverables, permanent, manual). Use BOTH: agents write to session state via `output_key`, then orchestrator persists selected results to disk via `save_step_tool`.
+*   **Session State Persistence:** Session state persists throughout the entire session across multiple agent invocations. Data written by one agent (e.g., `draft_loader` writes `raw_draft`) remains available to all subsequent agents (e.g., `outline_creator`, `content_splitter`) without reloading.
+*   **Load Once, Share via State:** Load external data (files, APIs) ONCE at workflow boundaries, store in session state, then all downstream agents read from state. Avoids redundant I/O and ensures consistency (all agents see identical data).
+*   **Setup Agent Pattern:** Create dedicated "loader" agents (e.g., `draft_loader`) with single responsibility: load external data → store via `output_key`. Use fast models (e.g., `gemini-2.5-flash`) for simple I/O tasks. Place at beginning of workflow to establish data foundation.
+*   **Functional Core, Imperative Shell:** Architectural pattern separating side effects (I/O) from pure logic. **Imperative Shell (Orchestrator):** Handles I/O boundaries (file reads, file writes, API calls, external state). **Functional Core (Worker Agents):** Pure processors with no I/O (read from session state, process data, write to session state). Benefits: testability (pure functions don't need I/O mocking), reliability (same input = same output), composability (workers reusable across workflows).
+*   **I/O Boundaries in Multi-Agent Systems:** Handle external I/O at the outermost workflow boundary (orchestrator level), then pass data via session state to inner agents. Pattern: Orchestrator loads data → stores in state → calls worker agents (they read from state) → workers produce outputs in state → orchestrator saves results to files.
+*   **Pure Processor Agents:** Worker agents that have NO tools (no I/O capability), only read/write session state, perform pure transformations. Example: `outline_creator` has `tools=[]`, reads `raw_draft` from state, outputs `blog_outline` to state. Keeps workers focused on logic, not I/O concerns.
+*   **Data Flow Clarity:** Explicit I/O in orchestrator instructions makes data flow visible. Reader can understand sequence without diving into agent internals. Example: "Use draft_loader to load → Use robust_outline_step to process → Use save_step_tool to persist."
+*   **Session State as the Notebook:** Think of session state as a shared notebook where agents write notes for each other. Each agent contributes knowledge (via `output_key`), reads others' notes (via `ctx.session.state.get()`), building up context progressively through the workflow.
+
 ## 🗺️ Roadmap
 
 ### Phase 1: Foundation & Tools 🛠️
@@ -97,10 +108,10 @@
   - [x] **1.3.3:** Create `blogger/workflow.py` orchestrator agent
 
 ### Phase 2: Core Logic Implementation ⚙️
-- [ ] **2.1 Step 1 (Draft to Outlines):** Implement outline creation with LoopAgent pattern.
+- [x] **2.1 Step 1 (Draft to Outlines):** Implement outline creation with LoopAgent pattern.
   - [x] **2.1.1:** Create `blogger/validation_checkers.py` with `OutlineValidationChecker` and `ContentSplitValidationChecker`
   - [x] **2.1.2:** Create `blogger/step_agents/step_1_outline.py` with worker agents and LoopAgent wrappers
-  - [ ] **2.1.3:** Update `blogger/workflow.py` to use the new step agents
+  - [x] **2.1.3:** Update `blogger/workflow.py` to use the new step agents
 - [ ] **2.2 Step 2 (Organizing):** Implement `outlines_to_draft_organized` logic.
 - [ ] **2.3 Step 3 (Writing Loop):** Implement the iterative section writing with both agents.
 

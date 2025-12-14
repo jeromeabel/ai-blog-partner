@@ -551,28 +551,30 @@ blogger/
 ```
 
 ### 2. Code Quality
-- [ ] All imports resolve without errors
-- [ ] All classes/functions have docstrings
-- [ ] Code follows patterns from official ADK example
-- [ ] No syntax errors when importing modules
+- [x] All imports resolve without errors
+- [x] All classes/functions have docstrings
+- [x] Code follows patterns from official ADK example
+- [x] No syntax errors when importing modules
 
 ### 3. Validation Logic
-- [ ] `OutlineValidationChecker` checks: 3+ sections, intro, conclusion
-- [ ] `ContentSplitValidationChecker` checks: both keys exist, length within ±10%
-- [ ] Both return `Event(actions=EventActions(escalate=True))` on success
-- [ ] Both return `Event(author=self.name, content=...)` on failure with helpful text
+- [x] `OutlineValidationChecker` checks: 3+ sections, intro, conclusion
+- [x] `ContentSplitValidationChecker` checks: both keys exist, length within ±10%
+- [x] Both return `Event(actions=EventActions(escalate=True))` on success
+- [x] Both return `Event(author=self.name, content=...)` on failure with helpful text
 
 ### 4. Agent Configuration
-- [ ] `outline_creator`: has Scribr, uses `read_draft_tool`, sets `output_key="blog_outline"`
-- [ ] `content_splitter`: has Scribr, sets `output_key="content_split"`
-- [ ] `robust_outline_step`: wraps outline_creator + validator, max_iterations=3
-- [ ] `robust_content_split_step`: wraps content_splitter + validator, max_iterations=2
+- [x] `outline_creator`: has Scribr, reads from session state, sets `output_key="blog_outline"`
+- [x] `content_splitter`: has Scribr, reads from session state, sets `output_key="content_split"`
+- [x] `draft_loader`: loads raw draft, sets `output_key="raw_draft"`
+- [x] `robust_outline_step`: wraps outline_creator + validator, max_iterations=3
+- [x] `robust_content_split_step`: wraps content_splitter + validator, max_iterations=2
 
 ### 5. Integration
-- [ ] `workflow.py` imports both LoopAgents correctly
-- [ ] Orchestrator includes both in `sub_agents` list
-- [ ] Orchestrator instruction references the new agents
-- [ ] Session state keys documented in instruction
+- [x] `workflow.py` imports `draft_loader` and both LoopAgents correctly
+- [x] Orchestrator includes `draft_loader` and both LoopAgents in `sub_agents` list
+- [x] Orchestrator instruction references the new agents
+- [x] Session state keys documented in instruction
+- [x] Implements "Functional Core, Imperative Shell" pattern (I/O at orchestrator boundary)
 
 ---
 

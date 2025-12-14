@@ -12,6 +12,11 @@ from google.adk.tools.function_tool import FunctionTool
 from google.adk.tools.google_search_tool import google_search
 
 from blogger.agents import linguist, scribr
+from blogger.step_agents.step_1_outline import (
+    draft_loader,
+    robust_content_split_step,
+    robust_outline_step,
+)
 from blogger.tools import read_draft_tool, save_step_tool
 
 # === ORCHESTRATOR AGENT ===
@@ -31,14 +36,13 @@ orchestrator = Agent(
 
     **Step 1: Draft to Outlines**
     - Input: Raw draft from user (blog_id provided)
-    - Use `read_draft_tool` to load the draft content
-    - Collaborate with Scribr (use scribr sub-agent) to:
-        1. Analyze the draft and create a structured outline
-        2. Identify which draft content matches each outline section (content for draft_ok)
-        3. Identify unused draft content that doesn't fit the outline (content for draft_not_ok)
-    - Use `save_step_tool` to save the outline as step name "outlines"
-    - Use `save_step_tool` to save matching content as step name "draft_ok"
-    - Use `save_step_tool` to save unused content as step name "draft_not_ok"
+    - Use `draft_loader` to load the raw draft into session state
+    - Use `robust_outline_step` to create the blog outline (reads raw_draft from session state)
+    - Use `robust_content_split_step` to split content into matching/unused chunks (reads raw_draft from session state)
+    - Use `save_step_tool` to save outputs:
+      - Step "outlines" → outlines.md
+      - Step "draft_ok" → draft_ok.md
+      - Step "draft_not_ok" → draft_not_ok.md
     - Output: outlines.md, draft_ok.md, draft_not_ok.md
 
     **Step 2: Organization**
@@ -68,9 +72,10 @@ orchestrator = Agent(
     - Output: illustration_ideas.md
 
     ## State Management
-    - Read draft content into state key: `raw_draft`
-    - Track current step: `current_step`
-    - Store outputs in appropriate state keys
+    - Raw draft: `raw_draft` (loaded by `draft_loader`)
+    - Outline: `blog_outline` (set by `robust_outline_step`)
+    - Content split: `content_split` (dict with draft_ok, draft_not_ok, set by `robust_content_split_step`)
+    - Current step: `current_step`
 
     ## Instructions
     - Always confirm the blog_id before starting
@@ -81,6 +86,9 @@ orchestrator = Agent(
     Current date: {datetime.datetime.now().strftime("%Y-%m-%d")}
     """,
     sub_agents=[
+        draft_loader,
+        robust_outline_step,
+        robust_content_split_step,
         scribr,
         linguist,
     ],

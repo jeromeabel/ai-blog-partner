@@ -9,6 +9,15 @@ from blogger.validation_checkers import (
 )
 
 # Worker agents
+draft_loader = Agent(
+    model="gemini-2.5-flash",  # Simple task, fast model
+    name="draft_loader",
+    description="Loads raw draft into session state",
+    instruction="Use the read_draft_tool to load the raw draft content.",
+    tools=[FunctionTool(read_draft_tool)],
+    output_key="raw_draft",  # ← Key point: stores to session state
+)
+
 outline_creator = Agent(
     model="gemini-3-pro-preview",
     name="outline_creator",
@@ -17,7 +26,7 @@ outline_creator = Agent(
     You are working with Scribr to create a blog post outline.
 
     Your task:
-    1. Use the `read_draft_tool` to load the raw draft content
+    1. Read the raw draft from session state (key: 'raw_draft')
     2. Collaborate with Scribr to analyze the draft and create a structured outline
     3. The outline should have:
         - A clear title (# heading)
@@ -29,7 +38,6 @@ outline_creator = Agent(
     Output the outline in Markdown format.
     """,
     sub_agents=[scribr],
-    tools=[FunctionTool(read_draft_tool)],
     output_key="blog_outline",
 )
 
@@ -41,7 +49,7 @@ content_splitter = Agent(
     You are a content analyzer. Your task is to split the raw draft into two parts based on the outline structure.
 
     Steps:
-    1. Use the `read_draft_tool` to load the raw draft content
+    1. Read the `raw_draft` from session state
     2. Read the `blog_outline` from session state
     3. Identify which content segments match the outline structure (draft_ok)
     4. Identify content that doesn't fit the outline (draft_not_ok)
@@ -57,7 +65,6 @@ content_splitter = Agent(
         "draft_not_ok": "Remaining content that doesn't fit..."
     }
     """,
-    tools=[FunctionTool(read_draft_tool)],
     output_key="content_split",
 )
 
