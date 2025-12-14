@@ -19,7 +19,9 @@ from google.genai import types
 
 from blogger.validation_utils import (
     check_content_integrity,
+    check_heading_order,
     check_outline_structure,
+    check_reorganization_integrity,
     normalize_and_split,
 )
 
@@ -186,3 +188,86 @@ class ContentSplitValidationChecker(BaseAgent):
                 ),
                 # No escalate - continue loop
             )
+
+
+class ReorganizationValidationChecker(BaseAgent):
+    """
+    Validates that reorganized draft matches outline structure and preserves content.
+
+    Checks:
+    - draft_organized exists
+    - All content from draft_ok exists in draft_organized
+    - Any added content in draft_organized exists in blog_outline (headings)
+
+    Returns:
+    - escalate=True if valid (exit loop)
+    - continue loop if invalid (retry)
+    """
+
+    async def _run_async_impl(
+        self, ctx: InvocationContext
+    ) -> AsyncGenerator[Event, None]:
+        # 1. Get inputs from session state
+        # Note: 'content_split' is a dict, need to extract 'draft_ok'
+        content_split = ctx.session.state.get("content_split", {})
+        draft_ok = (
+            content_split.get("draft_ok", "") if isinstance(content_split, dict) else ""
+        )
+        outline_text = ctx.session.state.get("blog_outline", "")
+        reorganized_text = ctx.session.state.get("draft_organized", "")
+
+        if not reorganized_text:
+            yield Event(
+                author=self.name,
+                content=types.Content(
+                    parts=[
+                        types.Part(
+                            text="❌ Reorganization failed: output 'draft_organized' is empty or missing"
+                        )
+                    ]
+                ),
+            )
+            return
+
+        # 2. Validate integrity using pure function
+        is_integrity_valid, integrity_error_msg = check_reorganization_integrity(
+            draft_ok, outline_text, reorganized_text
+        )
+
+        if not is_integrity_valid:
+            yield Event(
+                author=self.name,
+                content=types.Content(
+                    parts=[
+                        types.Part(text=f"❌ Reorganization content integrity failed: {integrity_error_msg}")
+                    ]
+                ),
+            )
+            return
+
+        # 3. Validate heading order
+        is_order_valid, order_error_msg = check_heading_order(outline_text, reorganized_text)
+
+        if not is_order_valid:
+             yield Event(
+                author=self.name,
+                content=types.Content(
+                    parts=[
+                        types.Part(text=f"❌ Reorganization heading order failed: {order_error_msg}")
+                    ]
+                ),
+            )
+             return
+
+        # 4. Yield result (success)
+        yield Event(
+            author=self.name,
+            content=types.Content(
+                parts=[
+                    types.Part(
+                        text="✅ Reorganization validated: Content preserved and structure matches outline"
+                    )
+                ]
+            ),
+            actions=EventActions(escalate=True),
+        )

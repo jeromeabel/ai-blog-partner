@@ -1,7 +1,7 @@
 # Task 2.2: Step 2 (Organization)
 
-**Status:** Planning
-**Started:** (pending)
+**Status:** In Progress
+**Started:** Dec 14, 2025
 
 ---
 
@@ -26,13 +26,13 @@ Reorganize draft_ok chunks to match outline structure, creating a properly seque
 **Question:** Should this step use LoopAgent for quality control?
 
 **Considerations:**
-- Task complexity: ?
-- Quality variance: ?
-- Retry value: ?
+- Task complexity: High (requires accurate mapping and completeness).
+- Quality variance: Moderate to High (LLMs can hallucinate or skip sections).
+- Retry value: High (validation can catch missing sections).
 
-**Decision:** (To be determined)
+**Decision:** Use `LoopAgent`.
 
-**Rationale:** (To be documented)
+**Rationale:** We need to ensure that *every* section from the outline is represented and that *all* content from `draft_ok` is included. A LoopAgent with a validation check for completeness is essential here.
 
 ---
 
@@ -43,9 +43,9 @@ Reorganize draft_ok chunks to match outline structure, creating a properly seque
 - B) Delegate directly to Scribr
 - C) Use existing agents with new instructions
 
-**Decision:** (To be determined)
+**Decision:** Create new `organizer_agent` in `blogger/step_agents/step_2_organize.py`.
 
-**Rationale:** (To be documented)
+**Rationale:** This is a specialized task involving structural reorganization, distinct from general writing or editing. A dedicated agent allows for focused prompting and easier debugging.
 
 ---
 
@@ -58,9 +58,9 @@ Reorganize draft_ok chunks to match outline structure, creating a properly seque
 - Structural markers (headings)
 - Combination approach
 
-**Decision:** (To be determined)
+**Decision:** Combination approach.
 
-**Rationale:** (To be documented)
+**Rationale:** The agent will be instructed to use the outline headings as the primary structure and semantically place the `draft_ok` chunks under the correct headings. We will rely on the LLM's understanding of the content to match it to the outline.
 
 ---
 
@@ -82,8 +82,8 @@ Reorganize draft_ok chunks to match outline structure, creating a properly seque
 ## ✅ Acceptance Criteria
 
 ### Code Quality
-- [ ] Imports resolve without errors
-- [ ] Agent(s) have clear docstrings
+- [x] Imports resolve without errors
+- [x] Agent(s) have clear docstrings
 - [ ] Follows patterns from Lesson 2.1
 
 ### Functionality
@@ -106,25 +106,29 @@ Reorganize draft_ok chunks to match outline structure, creating a properly seque
 
 ## 📝 Implementation Steps
 
-1. **Analyze Task** (current)
+1. **Analyze Task** (completed)
    - Understand requirements
    - Make architecture decisions
    - Document rationale
 
-2. **Create Agent(s)**
-   - File: `blogger/step_agents/step_2_organize.py` (if needed)
-   - Define worker agent(s)
-   - Add validation (if using LoopAgent)
+2. **Validation Logic** (Completed)
+   - [x] Create `check_reorganization_integrity` in `validation_utils.py`
+   - [x] Create `ReorganizationValidationChecker` in `validation_checkers.py`
+   - [x] Create and run unit tests for `check_reorganization_integrity`
+   - [x] Implement and run unit tests for `check_heading_order`
+   - [x] Update `ReorganizationValidationChecker` to include `check_heading_order`
+   - [x] Ensure outline descriptions are ignored by integrity and order checks
 
-3. **Update Workflow**
-   - Update Step 2 instructions in `blogger/workflow.py`
-   - Add new agents to `sub_agents` list
-   - Test integration
+3. **Create Agent(s)** (In Progress)
+   - [ ] Create `blogger/instructions/organizer.md`
+   - [ ] File: `blogger/step_agents/step_2_organize.py`
+   - [ ] Define worker agent(s) (`organizer_agent`)
+   - [ ] Add `LoopAgent` wrapper (`robust_organize_step`)
 
-4. **Test & Validate**
-   - Run with sample data
-   - Verify output quality
-   - Check all acceptance criteria
+4. **Update Workflow**
+   - [ ] Update Step 2 instructions in `blogger/workflow.py`
+   - [ ] Add new agents to `sub_agents` list
+   - [ ] Test integration
 
 ---
 

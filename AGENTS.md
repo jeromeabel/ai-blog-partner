@@ -1,18 +1,20 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) or Gemini CLI when working with code in this repository.
 
 ## Project Overview
 
 **AI Blog Partner** is a multi-agent system built with **Google ADK (Agent Development Kit)** to transform raw technical blog drafts into polished, authentic articles. The system uses a "partner" relationship with two specialized AI agents: Scribr (Senior Technical Writer) and Linguist (English Language Coach).
 
-See **README.md** for project vision and **AGENTS.md** for detailed agent personas and workflow architecture.
+See **README.md** for project vision, architecture, and detailed workflow steps.
 
 ## Development Protocol: Teacher/Student
 
 This project follows a **strict Teacher/Student protocol**:
-- **Teacher (You/Claude Code):** Explain concepts, provide specs, give tasks, check code, and guide learning
+- **Teacher (You/Claude Code/Gemini CLI):** Explain concepts, provide specs, give tasks, check code, and guide learning
 - **Student (Human):** Writes code to prove understanding
+
+**Strict Adherence to Steps:** Each enumerated step in 'The Process' below requires explicit confirmation or action from the **Student** (human) before the **Teacher** (AI) proceeds to the next step. The Teacher will *never* move ahead without the Student's explicit instruction or approval.
 
 **The Process:**
 1. You give the student a specific coding task with context and guidance
@@ -352,9 +354,9 @@ blogger/
 
 The system transforms drafts through: Draft to Outlines → Organization → Drafting & Research → Polishing → Finalization → Illustration (optional).
 
-**See AGENTS.md** for complete workflow details with inputs/outputs/actions for each step.
+**See README.md** for complete workflow details with inputs/outputs/actions for each step.
 
-**Current Status:** Phase 1 complete (Agents + Tools defined). Phases 2-3 are placeholders. Check **PROGRESS.md** for roadmap.
+**Current Status:** Phase 2.1 complete (Step 1 implementation). Check **learning/PROGRESS.md** for roadmap.
 
 ## Environment Setup
 
@@ -376,9 +378,9 @@ Agent instructions are in `blogger/instructions/*.md` files. See those files for
 
 ## Key References
 
-- **PROGRESS.md:** Current roadmap status, completed tasks, learned concepts
-- **AGENTS.md:** Full agent personas, responsibilities, and workflow architecture
-- **LESSON_*.md:** Step-by-step teaching guides for implementing features
+- **learning/PROGRESS.md:** Current roadmap status, completed tasks, learned concepts
+- **README.md:** Project vision, architecture, and 6-step workflow
+- **learning/lessons/*.md:** Completed lessons and reference material
 - **inputs/examples/blog-writer/:** Official Google ADK example (reference for patterns)
 
 ## Important Constraints
@@ -393,7 +395,7 @@ Agent instructions are in `blogger/instructions/*.md` files. See those files for
 
 - Main branch: `main`
 - Commit messages should reference completed tasks (e.g., "Implement Task 1.3.1: Tool return types")
-- Use Claude Code commit co-authorship footer when committing code
+- Use Claude Code / Gemini CLI commit co-authorship footer when committing code
 
 ## Model Selection
 

@@ -34,15 +34,9 @@ def normalize_and_split(text: str) -> set[str]:
     if not text:
         return set()
 
-    # Split by paragraphs (double newline) or lines (single newline)
-    # Try paragraph split first
-    paragraphs = text.split("\n\n")
-    if len(paragraphs) == 1:
-        # No paragraph breaks, split by lines
-        paragraphs = text.split("\n")
-
-    # Normalize: strip whitespace, lowercase, remove empty
-    normalized = {p.strip().lower() for p in paragraphs if p.strip()}
+    # Split by single newlines, then normalize each non-empty line
+    lines = text.split("\n")
+    normalized = {line.strip().lower() for line in lines if line.strip()}
     return normalized
 
 
@@ -190,3 +184,131 @@ def check_outline_structure(outline_text: str) -> tuple[bool, list[str]]:
 
     is_valid = len(reasons) == 0
     return is_valid, reasons
+
+
+def check_reorganization_integrity(
+    draft_ok: str, outline_text: str, reorganized_text: str
+) -> tuple[bool, str]:
+    """
+    Check that reorganized content preserves draft content and only adds outline headings.
+
+    Validates:
+    1. All paragraphs from draft_ok exist in reorganized_text (no lost content)
+    2. Any content in reorganized_text NOT in draft_ok must exist in outline_text (only headings added)
+
+    Args:
+        draft_ok: Content matching outline (source)
+        outline_text: The outline containing allowed headings
+        reorganized_text: The reorganized content
+
+    Returns:
+        (is_valid, error_message) tuple
+        - is_valid: True if all checks pass
+        - error_message: Empty string if valid, descriptive error if invalid
+
+    Examples:
+        >>> # Valid: reorganized contains draft + outline heading
+        >>> check_reorganization_integrity("Content", "# Title", "# Title\\n\\nContent")
+        (True, '')
+
+        >>> # Lost content
+        >>> check_reorganization_integrity("Content", "# Title", "# Title")
+        (False, "Lost content: 1 paragraphs missing (e.g., 'content')")
+
+        >>> # Unauthorized addition
+        >>> check_reorganization_integrity("Content", "# Title", "# Title\\n\\nContent\\n\\nNew stuff")
+        (False, "Added content: 1 paragraphs not in draft or outline (e.g., 'new stuff')")
+    """
+    # 1. Normalize and split all texts
+    draft_paragraphs = normalize_and_split(draft_ok)
+    
+    # Only consider HEADINGS from the outline as authorized/expected content.
+    # Ignore descriptions/body text within the outline.
+    outline_lines = outline_text.split('\n')
+    outline_paragraphs = {
+        line.strip().lower() 
+        for line in outline_lines 
+        if line.strip().startswith('#')
+    }
+    
+    reorganized_paragraphs = normalize_and_split(reorganized_text)
+
+    # 2. Define Expected Content: Union of draft content and outline headings
+    expected_paragraphs = draft_paragraphs | outline_paragraphs
+
+    # 3. Check for Lost Content: Ensure all expected paragraphs exist in reorganized
+    missing_content = expected_paragraphs - reorganized_paragraphs
+    if missing_content:
+        sample = list(missing_content)[:2]
+        sample_text = ", ".join(
+            [f"'{p[:50]}...'" if len(p) > 50 else f"'{p}'" for p in sample]
+        )
+        return (
+            False,
+            f"Lost content: {len(missing_content)} paragraphs missing (e.g., {sample_text})",
+        )
+
+    # 4. Check for Unauthorized Additions: Identify paragraphs in reorganized not in expected
+    added_content = reorganized_paragraphs - expected_paragraphs
+    if added_content:
+        sample = list(added_content)[:2]
+        sample_text = ", ".join(
+            [f"'{p[:50]}...'" if len(p) > 50 else f"'{p}'" for p in sample]
+        )
+        return (
+            False,
+            f"Added content: {len(added_content)} paragraphs not in draft or outline (e.g., {sample_text})",
+        )
+
+    return True, ""
+
+
+def check_heading_order(outline_text: str, reorganized_text: str) -> tuple[bool, str]:
+    """
+    Check if Level 2 headings (##) in reorganized text match the order in the outline.
+
+    Args:
+        outline_text: The source outline
+        reorganized_text: The reorganized content
+
+    Returns:
+        (is_valid, error_message)
+    """
+    def extract_headings(text: str) -> list[str]:
+        return [
+            line.strip().lower()
+            for line in text.split("\n")
+            if line.strip().startswith("## ")
+        ]
+
+    outline_headings = extract_headings(outline_text)
+    reorg_headings = extract_headings(reorganized_text)
+
+    # 1. Check for exact match first
+    if outline_headings == reorg_headings:
+        return True, ""
+
+    # 2. Check for missing headings
+    outline_set = set(outline_headings)
+    reorg_set = set(reorg_headings)
+
+    missing = outline_set - reorg_set
+    if missing:
+        # Sort for deterministic error message
+        sample = sorted(list(missing))[0]
+        return False, f"Missing heading: '{sample}' found in outline but not in reorganized text"
+
+    # 3. Check for extra headings
+    extra = reorg_set - outline_set
+    if extra:
+        sample = sorted(list(extra))[0]
+        return False, f"Extra heading: '{sample}' found in reorganized text but not in outline"
+
+    # 4. If sets match but order differs
+    for i, (out_h, reorg_h) in enumerate(zip(outline_headings, reorg_headings)):
+        if out_h != reorg_h:
+            return False, f"Heading order mismatch at #{i+1}: expected '{out_h}', found '{reorg_h}'"
+
+    return True, ""
+
+

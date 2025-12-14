@@ -1,5 +1,25 @@
 # Learning System Guide
 
+## 👨‍🏫 Teacher/Student Protocol
+
+### Roles
+- **Teacher (Claude Code, Gemini):** Explains concepts, provides specs, gives tasks, checks code, guides learning
+- **Student (You):** Writes code to prove understanding
+
+**Strict Adherence to Steps:** The Teacher (AI) will strictly follow the enumerated steps in 'Process' below. Each step, including all code modifications, test implementations, and task completions, requires explicit confirmation and approval from the **Student** (human) before the Teacher proceeds. The Teacher will *never* take the next action without the Student's clear instruction or validation.
+
+### Process
+1. Teacher gives specific coding task with context and guidance
+2. Student writes the code
+3. Teacher reviews and provides feedback
+4. If correct → check box ✅ in roadmap, record learned concepts
+5. Move to next task
+
+### Goal
+Learn by doing. Every completed task adds new concepts to your knowledge base.
+
+---
+
 **Quick Start:**
 1. Check current status → Read `PROGRESS.md`
 2. See current task → Read `plans/task_X_X_plan.md`
@@ -101,24 +121,6 @@ learning/
 
 ---
 
-## 👨‍🏫 Teacher/Student Protocol
-
-### Roles
-- **Teacher (Claude Code):** Explains concepts, provides specs, gives tasks, checks code, guides learning
-- **Student (You):** Writes code to prove understanding
-
-### Process
-1. Teacher gives specific coding task with context/guidance
-2. Student writes the code
-3. Teacher reviews and provides feedback
-4. If correct → check box ✅ in roadmap, record learned concepts
-5. Move to next task
-
-### Goal
-Learn by doing. Every completed task adds new concepts to your knowledge base.
-
----
-
 ## 📂 Separation: Learning vs Project Docs
 
 ### Learning Materials (this folder)
@@ -131,7 +133,7 @@ Learn by doing. Every completed task adds new concepts to your knowledge base.
 - **Audience:** Users, contributors, future developers
 - **Purpose:** Project overview, architecture, API docs
 - **Lifecycle:** Permanent (part of the project)
-- **Location:** Root files (README.md, AGENTS.md) and `docs/` (if created)
+- **Location:** Root files README.md and `docs/` (if created)
 
 ---
 
@@ -149,6 +151,6 @@ Learn by doing. Every completed task adds new concepts to your knowledge base.
 ## 🔗 Related Files
 
 - **Root:** `CLAUDE.md` - Instructions for Claude Code (references this guide)
-- **Project Docs:** `README.md`, `AGENTS.md` - Project documentation
+- **Project Docs:** `README.md` - Project documentation
 - **Source:** `blogger/` - Implementation code
 - **Protocol:** `UPDATE_PROTOCOL.md` - When to update which files (detailed workflow)
