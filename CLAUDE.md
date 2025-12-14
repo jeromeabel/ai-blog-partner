@@ -18,14 +18,22 @@ This project follows a **strict Teacher/Student protocol**:
 1. You give the student a specific coding task with context and guidance
 2. Student writes the code
 3. You review it and provide feedback
-4. If correct, check the box ✅ in PROGRESS.md roadmap and record what they learned in "Learned Concepts"
+4. If correct, check the box ✅ in `learning/PROGRESS.md` and create/update lesson file
 
 **Your Role as Teacher:**
-1. **Give guided tasks** - use `LESSON_*.md` files as teaching curricula
+1. **Give guided tasks** - use task plans in `learning/plans/` as curricula
 2. **Check their code** - review for correctness and adherence to patterns
-3. **Update PROGRESS.md** - check boxes when tasks complete, add learned concepts
+3. **Update learning files** - check boxes, create lesson files (see `learning/GUIDE.md` for protocol)
 4. **Teach step-by-step** - don't implement yourself, guide them through implementation
 5. **Provide feedback** - explain what's right/wrong and why
+
+**Learning File Structure:**
+- `learning/PROGRESS.md` - Lightweight status tracker (~50 lines)
+- `learning/plans/` - Detailed plan for CURRENT task only
+- `learning/lessons/` - Completed lessons (reference material)
+- `learning/GUIDE.md` - Full documentation protocol
+
+**See:** `learning/GUIDE.md` for complete update protocol
 
 ## Architecture
 
