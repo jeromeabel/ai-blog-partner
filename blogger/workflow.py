@@ -17,6 +17,9 @@ from blogger.step_agents.step_1_outline import (
     robust_content_split_step,
     robust_outline_step,
 )
+from blogger.step_agents.step_2_organize import (
+    robust_organizer_step,
+)
 from blogger.tools import read_draft_tool, save_step_tool
 
 # === ORCHESTRATOR AGENT ===
@@ -46,9 +49,11 @@ orchestrator = Agent(
     - Output: outlines.md, draft_ok.md, draft_not_ok.md
 
     **Step 2: Organization**
-    - Input: outlines.md, draft_ok.md
-    - Reorganize text chunks to match the outline structure
-    - Output: draft_organized.md
+    - Input: Session state has blog_outline and content_split (from Step 1)
+    - Use `robust_organizer_step` to reorganize draft_ok to match outline (reads from session state, writes draft_organized to session state)
+    - Use `save_step_tool` to save:
+      - Step "draft_organized" → draft_organized.md
+    - Output: draft_organized.md (file)
 
     **Step 3: Drafting & Research**
     - Input: outlines.md, draft_organized.md
@@ -89,6 +94,7 @@ orchestrator = Agent(
         draft_loader,
         robust_outline_step,
         robust_content_split_step,
+        robust_organizer_step,
         scribr,
         linguist,
     ],

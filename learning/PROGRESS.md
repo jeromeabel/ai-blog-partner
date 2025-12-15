@@ -1,8 +1,8 @@
 # Learning Progress Tracker
 
-**Active Task:** 2.2 Step 2 (Organizing)
-**Status:** Ready to create agents and instructions
-**Plan File:** `plans/task_2_2_plan.md`
+**Active Task:** 2.3 Step 3 (Writing Loop)
+**Status:** Planning next task
+**Plan File:** TBD
 
 ---
 
@@ -18,8 +18,8 @@
   - [x] 2.1.1: Validation checkers
   - [x] 2.1.2: Step agents
   - [x] 2.1.3: Workflow integration
-- [ ] **2.2 Step 2 (Organizing)** ← **CURRENT**
-- [ ] **2.3 Step 3 (Writing Loop)**
+- [x] **2.2 Step 2 (Organizing)** → `lessons/2.2-organizing.md`
+- [ ] **2.3 Step 3 (Writing Loop)** ← **CURRENT**
 
 ### Phase 3: Refinement & UI 🚀
 - [ ] **3.1 Polishing** (Steps 4 & 5)
@@ -35,6 +35,7 @@ Detailed concepts from completed tasks:
 - **1.2:** File Operations Tooling → `lessons/1.2-tools.md`
 - **1.3:** Workflow Skeleton & ADK Orchestration → `lessons/1.3-workflow.md`
 - **2.1:** LoopAgent Pattern & Functional Architecture → `lessons/2.1-loopagent.md`
+- **2.2:** Multi-Agent Architecture & Instruction Design → `lessons/2.2-organizing.md`
 
 ---
 
