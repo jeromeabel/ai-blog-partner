@@ -68,17 +68,27 @@ async def run_chat(agent_name: str):
                 session_id=session_id,
                 new_message=types.Content(parts=[types.Part(text=user_input)]),
             ):
-                # Handle model responses
-                if hasattr(event, "content") and event.content:
-                    if hasattr(event.content, "role") and event.content.role == "model":
-                        for part in event.content.parts:
-                            # Handle text responses
-                            if hasattr(part, "text") and part.text:
-                                response_parts.append(part.text)
-                            # Handle function calls
-                            elif hasattr(part, "function_call"):
-                                func_name = part.function_call.name
-                                print(f"\r🔧 Agent is using tool: {func_name}")
+                # Only process events with content (filters out system/framework events)
+                if not hasattr(event, "content") or not event.content:
+                    continue
+
+                # Store content for validation (filtered to only model responses below)
+                content = event.content  # type: ignore[attr-defined]
+
+                # Only process model responses (not user echoes)
+                if not hasattr(content, "role") or content.role != "model":
+                    continue
+
+                # Process each part of the model's response
+                if hasattr(content, "parts") and content.parts is not None:
+                    for part in content.parts:
+                        # Handle text responses
+                        if hasattr(part, "text") and part.text:
+                            response_parts.append(part.text)
+                        # Handle function calls (tools)
+                        elif hasattr(part, "function_call") and part.function_call:
+                            func_name = part.function_call.name
+                            print(f"\r🔧 Agent is using tool: {func_name}")
 
             # Print collected response
             if response_parts:
