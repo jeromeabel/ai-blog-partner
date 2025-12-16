@@ -6,7 +6,6 @@ Follows ADK patterns with main orchestrator agent and specialized sub-agents.
 """
 
 import datetime
-from pathlib import Path
 
 from google.adk.agents import Agent
 from google.adk.tools.function_tool import FunctionTool
@@ -23,10 +22,13 @@ from google.adk.tools.function_tool import FunctionTool
 from blogger.tools import read_draft_tool, save_step_tool
 from blogger.utils import read_instructions
 
+
 # === ORCHESTRATOR AGENT ===
 class OrchestratorAgent(Agent):
     """Custom Agent class to avoid app name mismatch warnings."""
+
     pass
+
 
 orchestrator = OrchestratorAgent(
     name="orchestrator",
