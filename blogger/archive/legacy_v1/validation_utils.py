@@ -175,12 +175,13 @@ def check_outline_structure(outline_text: str) -> tuple[bool, list[str]]:
     if not has_intro:
         reasons.append("missing Introduction section")
 
-    # Check 5: Has conclusion (check for "conclus" or "conclud" to match all variants)
+    # Check 5: Has conclusion (check for "conclus", "conclud", "wrap", "summary", "final" to match all variants)
+    conclusion_keywords = ["conclus", "conclud", "wrap", "summary", "final", "takeaway"]
     has_conclusion = any(
-        "conclus" in s.lower() or "conclud" in s.lower() for s in sections
+        any(keyword in s.lower() for keyword in conclusion_keywords) for s in sections
     )
     if not has_conclusion:
-        reasons.append("missing Conclusion section")
+        reasons.append(f"missing Conclusion section (looked for: {', '.join(conclusion_keywords)})")
 
     is_valid = len(reasons) == 0
     return is_valid, reasons

@@ -1,47 +1,38 @@
 # Learning Progress Tracker
 
-**Active Task:** 2.3 Step 3 (Writing Loop)
-**Status:** Planning next task
-**Plan File:** TBD
+**Active Task:** Phase 1 - Foundation Reboot
+**Status:** Starting Step 1.1
+**Plan File:** `learning/plans/reframe_step_1.md`
 
 ---
 
-## 🗺️ Roadmap
+## 🗺️ Roadmap: The Interactive Partner
 
-### Phase 1: Foundation & Tools 🛠️
-- [x] **1.1 Agent Definitions** → `lessons/1.1-agents.md`
-- [x] **1.2 Tooling (File Ops)** → `lessons/1.2-tools.md`
-- [x] **1.3 Workflow Skeleton** → `lessons/1.3-workflow.md`
+### Phase 1: Foundation & The Architect (Step 1) 🏗️
+- [ ] **1.1 The Playground**
+    - Create `playground.py` to interactively test single agents.
+    - Verify basic Scribr/Linguist connection.
+- [ ] **1.2 The Architect Agent**
+    - Implement `step_agents/architect.py`.
+    - Create/Refine `instructions/architect.md`.
+    - **Verify:** Interactively turn `my-ai-journey-2/draft.md` into a good outline.
 
-### Phase 2: Core Logic Implementation ⚙️
-- [x] **2.1 Step 1 (Draft to Outlines)** → `lessons/2.1-loopagent.md`
-  - [x] 2.1.1: Validation checkers
-  - [x] 2.1.2: Step agents
-  - [x] 2.1.3: Workflow integration
-- [x] **2.2 Step 2 (Organizing)** → `lessons/2.2-organizing.md`
-- [ ] **2.3 Step 3 (Writing Loop)** ← **CURRENT**
+### Phase 2: The Butcher (Step 2) 🔪
+- [ ] **2.1 Splitter Tool**
+    - Implement deterministic splitting logic (regex/fuzzy match).
+    - **Verify:** Unit tests (`pytest`).
+- [ ] **2.2 Integration**
+    - Connect Architect output to Butcher input.
 
-### Phase 3: Refinement & UI 🚀
-- [ ] **3.1 Polishing** (Steps 4 & 5)
-- [ ] **3.2 CLI Entrypoint**
+### Phase 3: The Writer (Step 3) ✍️
+- [ ] **3.1 Section Writer Agent**
+    - Implement `step_agents/writer.py`.
+    - **Verify:** Polish one section in Playground.
 
 ---
 
 ## 📚 Lesson Index
 
-Detailed concepts from completed tasks:
+*Legacy lessons moved to `learning/archive/`*
 
-- **1.1:** Agent Definitions & Instructions → `lessons/1.1-agents.md`
-- **1.2:** File Operations Tooling → `lessons/1.2-tools.md`
-- **1.3:** Workflow Skeleton & ADK Orchestration → `lessons/1.3-workflow.md`
-- **2.1:** LoopAgent Pattern & Functional Architecture → `lessons/2.1-loopagent.md`
-- **2.2:** Multi-Agent Architecture & Instruction Design → `lessons/2.2-organizing.md`
-
----
-
-## 📖 How to Use This Tracker
-
-- **Starting a task?** Check "Active Task" above, then read the plan file
-- **Completed a task?** Check the box ✅, create a lesson file, update the index
-- **Need to remember something?** Check the lesson index and read the relevant file
-- **See:** `GUIDE.md` for full documentation protocol
+- **Reframed:** `AGENTS.md` (The new Source of Truth)

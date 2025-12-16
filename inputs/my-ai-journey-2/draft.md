@@ -1,24 +1,40 @@
 # My AI Journey - part 2 - A Balanced Shift, Promises & Reality
 
-IDEES.
-- productivity/metrique: comment mesurer la productivité ?
+
+AGENTS
+The core philosophy is moving from a "God-Mode" single agent to a **Team of Specialists** led by a **Director**.
+
+
+PLAN
+- productivity/metrique
 - problème: sert à justifier des décisions: biais de confirmation, ne fait pas confiance aux autres membres de l'équipe -> CONFIANCE, DERESPONSABILISER
 - problème: discussion où on s'adapte (ne comprend pas l'implicite) > effet pervers sur les autres discussions entre humains
 - problème: organisation, équipe, adoption
 - problème: flow / context switching
-- intéressant: nouvelle interaction home/machine, la conversation -> sochratic method, This chain of thought -> PARTNER / HUMAN IN THE LOOP
+- intéressant: nouvelle interaction home/machine, la conversation -> sochratic method, This chain of thought
 	- duck buddy, comments conversation
 	- Partner mode, explain changes, redo by hand
-	- Language https://www.youtube.com/watch?v=yjLsHD9IzIA: # Why we're giving AI too much credit | Morten Rand-Hendriksen | TEDxSurrey
-	- they are mirrors. Hack ourself, on ne comprend plus ce qui est artificiel et ce qui est humain => anxiété. Learning, Thinking, reasoning, training = human metaphor
-	- Comme quand on voit deux rond noir => on pense que c'est un visage
-		- -> https://www.experimental-history.com/p/bag-of-words-have-mercy-on-us (ChatGPT as a bag of words)
-	- "Nous n'avons pas décider ou aller maintenant avec l'IA"
-	- => "Assisted technologies"
+- intéressant: chat window ou CLI AI => documentation dans l'IDE
 - intéressant: se comprendre
 - intéressant: challenge arts, challenge not being dumb
 - intéressant: se questionner, introspection sur les gestes et étapes d'un workflow 
 
+
+AGENTS
+The core philosophy is moving from a "God-Mode" single agent to a **Team of Specialists** led by a **Director**.
+
+Morten Rand-Hendriksen https://www.youtube.com/watch?v=yjLsHD9IzIA, Why we're giving AI too much credit | Morten Rand-Hendriksen | TEDxSurrey
+	- Language  #
+	- they are mirrors. Hack ourself, on ne comprend plus ce qui est artificiel et ce qui est humain => anxiété. Learning, Thinking, reasoning, training = human metaphor
+	- Comme quand on voit deux rond noir => on pense que c'est un visage
+		- -> https://www.experimental-history.com/p/bag-of-words-have-mercy-on-us (ChatGPT as a bag of words)
+	- "Nous n'avons pas décider ou aller maintenant avec l'IA"
+	- The word "Intelligence" ? => "Assisted technologies" 
+
+
+
+Humans in the Loop: Engineering Leadership in a Chaotic Industry
+https://www.infoq.com/presentations/ai-ml-jobs/
 
 DevAI: Beyond Hype and Denial
 https://www.ivankusalic.com/realistic-DevAI/
@@ -30,17 +46,6 @@ Everybody Else Is Doing It, So Why Can't I?
 https://www.linkedin.com/pulse/fear-learning-vancouver-clarifying-journey-realities-rand-hendriksen-xzsbc/
 Like a shag carpet drenched in spilled soda pop, this looming dread that _everyone else is doing it, so why can't I_ formed the subtle but uncomfortably ever-present base for so many conversations I started wondering if it was I who brought the doom (wouldn't be the first time). So I listened, and observed, and confirmed that no, it wasn't me. It was everyone.
 
-
-FROM: https://newsletter.techworld-with-milan.com/p/the-trends-9-typescript-just-became
-    95% of developers use AI, yet 30% don’t trust the code it writes. DORA’s 2025 report reveals that teams are moving faster while breaking more things (hello, outages). AI amplifies whatever system you have. Strong teams with good practices get better. Dysfunctional teams with fragmented workflows accelerate the chaos.
-
-    TypeScript has just become the most used language on GitHub. It is projected to grow by 1 million contributors in 2025. Also, India has overtaken the US in open-source contributions.
-
-    89% of developers use AI daily, but only 24% design APIs for it. The 2025 State of the API Report by Postman exposes a critical gap: developers are AI-native, but APIs aren’t built for AI agents. Also, 70% are aware of MCP, but only 10% use it.
-
-    AI is moving from software to the physical world. InfoQ’s trends report shows the next frontier: AI entering robotics and real-world systems. Google’s Gemini Robotics and NVIDIA’s AI-to-deployment pipeline are bringing language models into physical environments. This isn’t just software anymore.
-
-    ThoughtWorks flags the AI antipatterns to avoid. What’s working: MCP, agentic workflows, curated shared instructions. What’s not: AI-accelerated shadow IT, naive API-to-MCP conversion, text-to-SQL failures.
 
 AI GEN MYTHS
 https://www.linkedin.com/pulse/ai-bubble-bursting-shocking-mit-study-key-from-gilded-ryan-levesque-uytfe
@@ -62,6 +67,9 @@ But hearing industry veterans like Martin Fowler acknowledge the magnitude of th
 The question now isn’t *whether* to use these tools. It’s *how* to use them without trading long-term understanding for short-term productivity. Using AI well is genuinely difficult. It requires time to learn, deliberate practice, and a clear sense of when in the workflow it actually helps.
 
 After the JavaScript fatigue, are we entering the AI fatigue?
+
+In the next post, **Part 3: A Balanced Shift, Promises & Reality**, I’ll explore the pressure on productivity, the evergreen skills that still matter, and how to carve out space for experimentation without sacrificing the craft.
+
 
 
 Here are the exact text snippets we set aside from your draft. You can copy-paste these directly into your workspace to start **Blog Post 3: "A Balanced Shift."**
@@ -207,7 +215,7 @@ https://www.blogdumoderateur.com/devops-ia-native-developpeurs-managers-agents/
 
 ## Alignement issues: Re-thinking documentation
 • Manque de confiance (hallucinations, non-déterminisme)
-- Alignement (Beast mode). Le créateur de Best Mode (agent for VS Code COPILOT) a lu toute la documentaion d'Open AI pour comprendre comment obtenir les meilleurs résultats avec leur modèle
+- Alignement (Beast mode)
 • Le contexte est roi : la qualité des résultats de l'IA dépend directement de la qualité du contexte fourni. La documentation et les spécifications deviennent la source de vérité, des artefacts fondamentaux.
 
 Updated Standards
@@ -217,6 +225,8 @@ Updated Standards
 ### But Needs of Specific processes
 - FILES/DOCS for AI or for Humans (!!!). Docs are not only for Human, ultra verbose to contrain the model, repetitive
 - Déformation : traiter les humains comme des machines -> IHM
+
+! EFFET ETRANGE. Le besoin de specs: humain et machine LLM différents. D'ailleurs pour remplir les instructions d'un agent LLM on le fait à l'aide d'un LLM... Différent de specs entre humain (implicite, explicite, alignement, contexte le LLM est un bébé)
 
 ### 1 PROCESS MORE OR FEWer PROCESSES LESS ?
 
@@ -229,7 +239,7 @@ Conceptuel vs Organic: 1 process de plus -> bureaucraty, process > creativity, D
 
 
 ### NON DETERMINISTIC
-The Paradigm Shift: From Predictable Code to Unpredictable Agents (Google Whitepapers)
+The Paradigm Shift: From Predictable Code to Unpredictable Agents
 Agent Quality in a Non-Deterministic World.
 • Manque de confiance (hallucinations, non-déterminisme)
 • Travailler avec un assistant "non déterministe". L'IA est un assistant, un copilote. Le développeur reste le pilote.

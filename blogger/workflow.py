@@ -6,102 +6,45 @@ Follows ADK patterns with main orchestrator agent and specialized sub-agents.
 """
 
 import datetime
+from pathlib import Path
 
 from google.adk.agents import Agent
 from google.adk.tools.function_tool import FunctionTool
-from google.adk.tools.google_search_tool import google_search
 
-from blogger.agents import linguist, scribr
-from blogger.step_agents.step_1_outline import (
-    draft_loader,
-    robust_content_split_step,
-    robust_outline_step,
-)
-from blogger.step_agents.step_2_organize import (
-    robust_organizer_step,
-)
+# from google.adk.tools.google_search_tool import google_search  # Temporarily disabled for testing
+# from blogger.step_agents.step_1_outline import (
+#     draft_loader,
+#     robust_content_split_step,
+#     robust_outline_step,
+# )
+# from blogger.step_agents.step_2_organize import (
+#     robust_organizer_step,
+# )
 from blogger.tools import read_draft_tool, save_step_tool
+from blogger.utils import read_instructions
 
 # === ORCHESTRATOR AGENT ===
-orchestrator = Agent(
+class OrchestratorAgent(Agent):
+    """Custom Agent class to avoid app name mismatch warnings."""
+    pass
+
+orchestrator = OrchestratorAgent(
     name="orchestrator",
     model="gemini-2.5-flash",
     description="AI Blog Partner orchestrator managing the 6-step writing pipeline",
-    instruction=f"""
-    You are the AI Blog Partner Orchestrator. You manage a 6-step pipeline to transform
-    raw technical blog drafts into polished, authentic articles.
-
-    You work with two specialist agents:
-    - **Scribr**: A Senior Technical Writer Partner (strategist, drafter, editor)
-    - **Linguist**: An English Language Coach (language mechanics only)
-
-    ## Your Workflow
-
-    **Step 1: Draft to Outlines**
-    - Input: Raw draft from user (blog_id provided)
-    - Use `draft_loader` to load the raw draft into session state
-    - Use `robust_outline_step` to create the blog outline (reads raw_draft from session state)
-    - Use `robust_content_split_step` to split content into matching/unused chunks (reads raw_draft from session state)
-    - Use `save_step_tool` to save outputs:
-      - Step "outlines" → outlines.md
-      - Step "draft_ok" → draft_ok.md
-      - Step "draft_not_ok" → draft_not_ok.md
-    - Output: outlines.md, draft_ok.md, draft_not_ok.md
-
-    **Step 2: Organization**
-    - Input: Session state has blog_outline and content_split (from Step 1)
-    - Use `robust_organizer_step` to reorganize draft_ok to match outline (reads from session state, writes draft_organized to session state)
-    - Use `save_step_tool` to save:
-      - Step "draft_organized" → draft_organized.md
-    - Output: draft_organized.md (file)
-
-    **Step 3: Drafting & Research**
-    - Input: outlines.md, draft_organized.md
-    - For each section:
-      - Scribr expands/rewrites (use google_search for fact-checking)
-      - Linguist reviews language mechanics
-    - Output: draft_nice.md
-
-    **Step 4: Polishing**
-    - Input: draft_nice.md
-    - Scribr applies final "No-Hype" and authenticity rules
-    - Output: draft_polished.md
-
-    **Step 5: Finalization**
-    - Input: draft_polished.md
-    - Format for publishing, generate SEO metadata
-    - Output: final.md
-
-    **Step 6: Illustration (Optional)**
-    - Brainstorm cover art concepts
-    - Output: illustration_ideas.md
-
-    ## State Management
-    - Raw draft: `raw_draft` (loaded by `draft_loader`)
-    - Outline: `blog_outline` (set by `robust_outline_step`)
-    - Content split: `content_split` (dict with draft_ok, draft_not_ok, set by `robust_content_split_step`)
-    - Current step: `current_step`
-
-    ## Instructions
-    - Always confirm the blog_id before starting
-    - Execute steps sequentially unless user specifies otherwise
-    - Present outputs to user for approval between major steps
-    - Use tools for all file operations
-
-    Current date: {datetime.datetime.now().strftime("%Y-%m-%d")}
-    """,
+    instruction=f"{read_instructions('orchestrator.md')}\n\nCurrent date: {datetime.datetime.now().strftime('%Y-%m-%d')}",
     sub_agents=[
-        draft_loader,
-        robust_outline_step,
-        robust_content_split_step,
-        robust_organizer_step,
-        scribr,
-        linguist,
+        # draft_loader,  # Removed: draft_loader is now a sub-agent of robust_outline_step
+        # robust_outline_step,
+        # robust_content_split_step,
+        # robust_organizer_step,
+        # Note: scribr and linguist are sub-agents of specific step agents
+        # They cannot also be sub-agents of orchestrator (ADK limitation)
     ],
     tools=[
         FunctionTool(read_draft_tool),
         FunctionTool(save_step_tool),
-        google_search,
+        # google_search,  # Temporarily disabled - not supported by gemini-2.5-flash
     ],
 )
 

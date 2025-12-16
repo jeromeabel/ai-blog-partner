@@ -1,6 +1,5 @@
 from google.adk.agents import Agent, LoopAgent
 
-from blogger.agents import scribr
 from blogger.utils import read_instructions
 from blogger.validation_checkers import ReorganizationValidationChecker
 
@@ -10,7 +9,7 @@ organizer = Agent(
     instruction=read_instructions("organizer.md"),
     description="Reorganizes draft content to match outline structure",
     output_key="draft_organized",
-    sub_agents=[scribr],
+    # Note: No sub-agents needed - organizer just reorganizes existing content
 )
 
 robust_organizer_step = LoopAgent(

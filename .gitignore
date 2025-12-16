@@ -12,5 +12,8 @@ __pycache__/
 .DS_Store
 
 # Specific
-/examples/
+examples/
 .coverage
+
+# Generated outputs
+outputs/
