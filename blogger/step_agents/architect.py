@@ -7,9 +7,9 @@ through interactive conversation.
 
 from google.adk.agents.llm_agent import Agent
 
-from blogger.utils import read_instructions
-from blogger.tools import read_draft_tool, read_file_tool, save_step_tool
 from blogger.agents import scribr
+from blogger.tools import read_draft_tool, read_file_tool, save_step_tool
+from blogger.utils import read_instructions
 
 architect = Agent(
     model="gemini-3-pro-preview",
@@ -17,5 +17,5 @@ architect = Agent(
     description="The Architect - Expert Editor & Structural Thinker",
     instruction=read_instructions("architect.md"),
     tools=[read_draft_tool, read_file_tool, save_step_tool],
-    agents=[scribr],  # Scribr helps polish titles and check for LLM-isms
+    sub_agents=[scribr],
 )

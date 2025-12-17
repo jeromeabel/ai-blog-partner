@@ -38,17 +38,28 @@
     - **Ready to Verify:** Test interactive outline creation with real draft
     - **Lesson:** `lessons/phase1-reboot.md`
 
-### Phase 2: The Butcher (Step 2) 🔪
-- [ ] **2.1 Splitter Tool**
-    - Implement deterministic splitting logic (regex/fuzzy match)
-    - **Verify:** Unit tests (`pytest`)
-- [ ] **2.2 Integration**
-    - Connect Architect output to Butcher input
+### Phase 2: The Curator (Step 2) 🎨
+- [ ] **2.1 Filter Scope Tool**
+    - Implement `filter_scope_tool` (LLM splits in-scope vs future content)
+    - Output: `draft_ok.md` + `draft_not_ok.md`
+    - **Verify:** User checkpoint in playground
+- [ ] **2.2 Organize Content Tool**
+    - Implement `organize_content_tool` (LLM reorganizes paragraphs to match outline)
+    - Extract validation utils from legacy (`check_reorganization_integrity`, `check_heading_order`)
+    - Implement LLM-as-judge validation with escalation pattern
+    - Output: `draft_ok_organized.md`
+    - **Verify:** Unit tests for validation logic (`pytest`)
+- [ ] **2.3 Curator Agent**
+    - Create `step_agents/curator.py`
+    - Orchestrates filter → organize workflow with checkpoints
+    - **Verify:** Test in playground with real draft + outline
 
 ### Phase 3: The Writer (Step 3) ✍️
-- [ ] **3.1 Section Writer Agent**
+- [ ] **3.1 Writer Agent**
     - Implement `step_agents/writer.py`
-    - **Verify:** Polish one section in Playground
+    - Input: `draft_ok_organized.md` (full context for flow and transitions)
+    - Process: Iterative expand & polish with section-by-section focus
+    - **Verify:** Polish sections in Playground with full document context
 
 ---
 

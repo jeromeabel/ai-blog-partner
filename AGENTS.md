@@ -26,17 +26,21 @@ We have moved away from complex `LoopAgents` and rigid state machines. The new w
     *   **Process:** Conversational brainstorming. User critiques, Agent iterates.
     *   **Output:** `outline.md` (Approved by user).
 
-2.  **Step 2: The Butcher (Split)**
-    *   **Goal:** Organize content.
+2.  **Step 2: The Curator (Filter & Organize)**
+    *   **Goal:** Curate in-scope content and organize to match outline.
     *   **Input:** `draft.md` + `outline.md`.
-    *   **Process:** Deterministic splitting (Tool-based).
-    *   **Output:** `sections/01_intro.md`, `sections/02_body.md`, etc.
+    *   **Process:** Two-phase workflow with checkpoints:
+        *   **Phase 2.1 - Filter Scope:** LLM splits content into in-scope vs future topics.
+        *   **Checkpoint:** User reviews `draft_ok.md` + `draft_not_ok.md`.
+        *   **Phase 2.2 - Organize:** LLM reorganizes `draft_ok` to match outline section order.
+        *   **Validation:** Automatic integrity checks + LLM-as-judge for logical flow.
+    *   **Output:** `draft_ok.md`, `draft_not_ok.md`, `draft_ok_organized.md`.
 
 3.  **Step 3: The Writer (Expand & Polish)**
-    *   **Goal:** High-quality prose.
-    *   **Input:** Specific `section_X.md`.
-    *   **Process:** Iterative writing/editing on a per-section basis.
-    *   **Output:** Polished section.
+    *   **Goal:** High-quality prose with full context.
+    *   **Input:** `draft_ok_organized.md` (single file with all sections).
+    *   **Process:** Iterative writing/editing with access to full post context for flow and transitions.
+    *   **Output:** `draft_polished.md`.
 
 ## Coding Standards
 
@@ -57,13 +61,14 @@ We have moved away from complex `LoopAgents` and rigid state machines. The new w
 ```
 blogger/
   ├── agents.py            # Base agent definitions (Scribr, Linguist)
-  ├── tools.py             # File operation tools
+  ├── tools.py             # File operation tools (filter_scope, organize_content, etc.)
+  ├── text_utils.py        # Pure text processing functions
   ├── playground.py        # INTERACTIVE TESTING SCRIPT (The new entrypoint)
   ├── instructions/        # Agent system prompts
   └── step_agents/         # specific logic for the 3 steps
-       ├── architect.py    # Step 1
-       ├── butcher.py      # Step 2
-       └── writer.py       # Step 3
+       ├── architect.py    # Step 1: Outline creation
+       ├── curator.py      # Step 2: Filter & organize content
+       └── writer.py       # Step 3: Expand & polish
 ```
 
 ## Git Workflow

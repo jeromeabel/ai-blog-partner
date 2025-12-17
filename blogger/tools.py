@@ -3,6 +3,12 @@ import urllib.request
 from urllib.error import URLError, HTTPError
 import re
 
+from blogger.text_utils import (
+    extract_headings,
+    find_best_heading_match,
+    split_text_by_headings,
+)
+
 CURRENT_DIR = Path(__file__).parent.parent
 INPUTS_DIR = CURRENT_DIR / "inputs"
 OUTPUTS_DIR = CURRENT_DIR / "outputs"
