@@ -2,11 +2,13 @@ from pathlib import Path
 import urllib.request
 from urllib.error import URLError, HTTPError
 import re
+from google import genai
 
 from blogger.text_utils import (
     extract_headings,
     find_best_heading_match,
     split_text_by_headings,
+    check_content_integrity,
 )
 
 CURRENT_DIR = Path(__file__).parent.parent
@@ -225,3 +227,193 @@ def fetch_webpage_tool(url: str) -> dict:
             "status": "error",
             "message": f"Failed to fetch URL: {str(e)}"
         }
+
+
+# ============================================================================
+# Phase 2 Tools: Content Filtering and Organization
+# ============================================================================
+
+
+def _llm_filter_content(draft: str, outline: str) -> dict:
+    """
+    Internal LLM helper to filter draft content into in-scope and out-of-scope sections.
+
+    Args:
+        draft: The raw draft content
+        outline: The approved outline
+
+    Returns:
+        {"draft_ok": "...", "draft_not_ok": "..."}
+    """
+    prompt = f"""You are a content curator helping organize blog post drafts.
+
+Given a DRAFT and an OUTLINE, your job is to split the draft content into two parts:
+
+1. **IN-SCOPE (draft_ok):** Content that matches the outline's topics and should be included in this blog post.
+2. **OUT-OF-SCOPE (draft_not_ok):** Content about future topics, tangents, or ideas that don't fit the current outline.
+
+**CRITICAL RULES:**
+- PRESERVE ALL CONTENT EXACTLY. Do not rewrite, summarize, or modify any text.
+- Every paragraph from the draft must appear in EITHER draft_ok OR draft_not_ok (never both, never lost).
+- Only split by paragraphs. Keep all text within paragraphs intact.
+- Focus on topic matching: Does this paragraph discuss a topic covered in the outline?
+
+**OUTLINE:**
+```markdown
+{outline}
+```
+
+**DRAFT:**
+```markdown
+{draft}
+```
+
+**OUTPUT FORMAT:**
+Return your response as two markdown sections:
+
+---IN-SCOPE---
+[All in-scope paragraphs here, exactly as they appear in the draft]
+
+---OUT-OF-SCOPE---
+[All out-of-scope paragraphs here, exactly as they appear in the draft]
+
+Now split the content:"""
+
+    try:
+        client = genai.Client()
+        response = client.models.generate_content(
+            model="gemini-3-pro-preview",
+            contents=prompt
+        )
+        result_text = response.text
+
+        # Parse the response
+        if not result_text:
+            return {
+                "status": "error",
+                "message": "LLM returned empty response"
+            }
+
+        if "---IN-SCOPE---" not in result_text or "---OUT-OF-SCOPE---" not in result_text:
+            return {
+                "status": "error",
+                "message": "LLM response missing required sections (IN-SCOPE/OUT-OF-SCOPE)"
+            }
+
+        parts = result_text.split("---IN-SCOPE---")[1]
+        in_scope_part, out_scope_part = parts.split("---OUT-OF-SCOPE---")
+
+        draft_ok = in_scope_part.strip()
+        draft_not_ok = out_scope_part.strip()
+
+        return {
+            "status": "success",
+            "draft_ok": draft_ok,
+            "draft_not_ok": draft_not_ok
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"LLM filtering failed: {str(e)}"
+        }
+
+
+def filter_scope_tool(blog_id: str) -> dict:
+    """
+    Filter draft content into in-scope (matches outline) and out-of-scope (future topics).
+
+    Uses an LLM to analyze the draft against the outline and split content into:
+    - draft_ok.md: Content that fits the current outline
+    - draft_not_ok.md: Content for future posts or topics outside the outline
+
+    This is Phase 2.1 of the pipeline. User should review both files at the checkpoint
+    before proceeding to organization (Phase 2.2).
+
+    Args:
+        blog_id: Unique identifier for the blog (e.g., "my-ai-journey-2")
+
+    Returns:
+        Success: {
+            "status": "success",
+            "blog_id": "...",
+            "draft_ok_path": "...",
+            "draft_not_ok_path": "...",
+            "ok_count": N,     # Number of paragraphs in draft_ok
+            "not_ok_count": M  # Number of paragraphs in draft_not_ok
+        }
+        Error: {"status": "error", "message": "Actionable error description"}
+    """
+    # 1. Read draft and outline
+    draft_path = INPUTS_DIR / blog_id / draft_filename
+    outline_path = OUTPUTS_DIR / blog_id / "outline.md"
+
+    if not draft_path.exists():
+        return {
+            "status": "error",
+            "message": f"Draft file not found for blog_id '{blog_id}'. Expected: {draft_path}"
+        }
+
+    if not outline_path.exists():
+        return {
+            "status": "error",
+            "message": f"Outline file not found for blog_id '{blog_id}'. Expected: {outline_path}. Run Step 1 (Architect) first."
+        }
+
+    try:
+        with open(draft_path, "r") as f:
+            draft_content = f.read()
+        with open(outline_path, "r") as f:
+            outline_content = f.read()
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to read input files: {str(e)}"
+        }
+
+    # 2. Call LLM to filter content
+    filter_result = _llm_filter_content(draft_content, outline_content)
+    if filter_result["status"] == "error":
+        return filter_result
+
+    draft_ok = filter_result["draft_ok"]
+    draft_not_ok = filter_result["draft_not_ok"]
+
+    # 3. Validate integrity (no content lost or added)
+    is_valid, error_msg = check_content_integrity(draft_content, draft_ok, draft_not_ok)
+    if not is_valid:
+        return {
+            "status": "error",
+            "message": f"Content integrity check failed: {error_msg}. The LLM may have rewritten or lost content."
+        }
+
+    # 4. Save outputs
+    try:
+        draft_ok_path = OUTPUTS_DIR / blog_id / "draft_ok.md"
+        draft_not_ok_path = OUTPUTS_DIR / blog_id / "draft_not_ok.md"
+
+        draft_ok_path.parent.mkdir(parents=True, exist_ok=True)
+
+        with open(draft_ok_path, "w") as f:
+            f.write(draft_ok)
+        with open(draft_not_ok_path, "w") as f:
+            f.write(draft_not_ok)
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to save filtered content: {str(e)}"
+        }
+
+    # 5. Return success with stats
+    ok_paragraphs = [p for p in draft_ok.split("\n\n") if p.strip()]
+    not_ok_paragraphs = [p for p in draft_not_ok.split("\n\n") if p.strip()]
+
+    return {
+        "status": "success",
+        "blog_id": blog_id,
+        "draft_ok_path": str(draft_ok_path),
+        "draft_not_ok_path": str(draft_not_ok_path),
+        "ok_count": len(ok_paragraphs),
+        "not_ok_count": len(not_ok_paragraphs)
+    }
