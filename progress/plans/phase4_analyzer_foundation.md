@@ -30,6 +30,11 @@ Build a draft analysis system that detects content complexity and provides conte
 
 **Output:** Single file (`0-analysis.md`) with YAML front-matter for machine parsing + human-readable summary.
 
+**What's NOT included in Phase 4:**
+- Chunk extraction (that's Phase 5 - Deep Mode)
+- Curator integration (Curator remains unchanged in Phase 4, updated in Phase 5)
+- Full content deconstruction (light mode is summary only)
+
 ### Workflow Integration
 
 ```
@@ -433,6 +438,12 @@ Phase 4 is complete when:
 - Fewer files to manage
 - Human-readable + machine-parseable in one place
 - Common pattern in static site generators (Jekyll, Hugo)
+
+**Why doesn't Phase 4 update Curator?**
+- Light mode doesn't extract chunks (just summary statistics)
+- Without chunks, Curator has nothing new to work with
+- Curator integration happens in Phase 5 when chunks are available
+- Keeps Phase 4 focused and testable
 
 ---
 

@@ -227,6 +227,61 @@ Outline v1:
 
 **Key benefit:** Architect works with **pre-processed structure** instead of raw chaos.
 
+### How Curator Uses Deep Analysis
+
+**Without Deep Mode (Phase 2 behavior):**
+```
+Curator reads:
+- 1-outline.md (approved outline)
+- draft.md (full chaotic draft)
+
+Curator thinks:
+"Section 1 is 'The Philosophy'. Let me scan all 5000 words to find matching content..."
+[Re-parses entire draft, matches content to sections]
+```
+
+**With Deep Mode (Phase 5):**
+```
+Curator reads:
+- 1-outline.md (approved outline)
+- 0-analysis.md (32 pre-extracted chunks with scores/topics)
+- draft.md (available for reference if needed)
+
+Curator thinks:
+"Section 1 is 'The Philosophy'. Analysis shows chunks tagged 'debugging_philosophy':
+- Chunk #1 (score: 9.2) → IN-SCOPE, Section 1
+- Chunk #4 (score: 8.0) → IN-SCOPE, Section 1 (Architect didn't mention this one)
+- Chunk #6 (score: 7.5) → IN-SCOPE, Section 1
+
+Chunk #28 (score: 3.2, topic: tools) → OUT-OF-SCOPE (no section match)"
+[Works with pre-processed chunks, faster filtering]
+
+Outputs:
+## Section 1: The Philosophy
+<!-- Chunk #1 -->
+[Karpathy quote content]
+
+<!-- Chunk #4 -->
+[Additional philosophy content]
+
+## Out-of-Scope Content
+<!-- Chunk #28 -->
+[Claude tangent - consider removing]
+```
+
+**Key benefits:**
+- **Efficiency:** No re-parsing (chunks already extracted)
+- **Quality hints:** Uses scores to filter low-quality content
+- **Traceability:** Chunk IDs preserved in organized draft
+- **Discovery:** Finds relevant chunks Architect didn't reference
+- **Backward compatible:** Falls back to draft.md if no deep analysis
+
+**Critical distinction:**
+- **Analyzer** (Step 0): Scores content quality, detects topics → **Content-agnostic**
+- **Curator** (Step 2): Matches content to outline sections → **Outline-specific**
+
+Curator makes the final in-scope decision based on approved outline structure, using analysis as efficiency hints.
+
 ---
 
 ## 📋 Implementation Checklist
@@ -343,7 +398,66 @@ Outline v1:
   - [ ] Example: "Build outline using Flow A: #1 → #2 → #4..."
   - [ ] Guidance on when to reference draft.md vs chunk IDs
 
-### Task 7: Testing
+### Task 7: Curator Integration
+
+**Goal:** Make Curator analysis-aware so it can work with pre-processed chunks instead of re-parsing draft.
+
+**File:** `blogger/utils/tools.py`
+
+- [ ] Create `read_chunks_for_curation(blog_id: str) -> dict`
+  - [ ] Check if `0-analysis.md` exists
+  - [ ] Parse YAML front-matter to check `mode`
+  - [ ] If `mode: deep`:
+    - [ ] Parse chunk section from analysis
+    - [ ] Return `{"mode": "deep", "chunks": [...]}`
+  - [ ] If `mode: light` or no analysis:
+    - [ ] Return `{"mode": "light", "chunks": None}`
+  - [ ] Return dict with mode + chunks (or None)
+
+- [ ] Create `match_chunk_to_section(chunk: dict, section_heading: str, outline_text: str) -> bool`
+  - [ ] Pure function to determine if chunk fits a section
+  - [ ] Use chunk topics, score, content
+  - [ ] Compare against section heading and context
+  - [ ] Return True/False
+
+- [ ] Write unit tests: `blogger/tests/test_curator_chunk_integration.py`
+  - [ ] Test `read_chunks_for_curation` with deep analysis
+  - [ ] Test `read_chunks_for_curation` with light/no analysis
+  - [ ] Test `match_chunk_to_section` with various scenarios
+  - [ ] Test edge cases (malformed analysis, missing chunks)
+
+**File:** `blogger/agents/curator.py`
+
+- [ ] Update Curator to check for analysis mode
+  - [ ] Call `read_chunks_for_curation` at start
+  - [ ] If mode=deep: Use chunk-based organization
+  - [ ] If mode=light or none: Use current draft.md parsing
+
+- [ ] Implement chunk-based filtering (deep mode)
+  - [ ] For each chunk, determine which outline section it fits
+  - [ ] Use chunk scores as quality hints
+  - [ ] Use chunk topics for section matching
+  - [ ] Chunks that match outline sections → in-scope
+  - [ ] Chunks that don't match any section → out-of-scope
+
+- [ ] Preserve chunk IDs in organized output
+  - [ ] Format: `<!-- Chunk #1 -->` before content
+  - [ ] Allows traceability back to analysis
+  - [ ] Useful for debugging and Writer phase
+
+- [ ] Update `blogger/agents/curator.md` (instructions)
+  - [ ] Add section on analysis-aware curation
+  - [ ] Explain chunk-based vs draft-based workflows
+  - [ ] Add examples of using chunk scores/topics for decisions
+
+**Key Decision: Backward Compatibility**
+- [ ] Ensure Curator works WITHOUT analysis (graceful fallback)
+  - [ ] If no `0-analysis.md`: Parse draft.md as before (Phase 2 behavior)
+  - [ ] If `mode: light`: Parse draft.md (chunks not available)
+  - [ ] Only use chunks if `mode: deep` AND chunks exist
+  - [ ] No breaking changes to existing workflow
+
+### Task 8: Testing
 
 - [ ] Create test draft for deep mode
   - [ ] Narrative post with 15+ quotes
@@ -363,13 +477,28 @@ Outline v1:
   - [ ] Verify: Outline references chunk IDs
   - [ ] Verify: Flow A used as basis for outline v1
 
-- [ ] Compare deep vs light workflows
-  - [ ] Same draft, run light mode → Architect
-  - [ ] Same draft, run deep mode → Architect
-  - [ ] Compare: Which produces better outlines?
-  - [ ] Measure: Time cost vs quality gain
+- [ ] Test Curator with deep analysis (NEW)
+  - [ ] Run full workflow: Analyzer (deep) → Architect → Curator
+  - [ ] Verify: Curator detects mode=deep
+  - [ ] Verify: Curator uses chunks instead of re-parsing draft
+  - [ ] Verify: Organized output includes chunk IDs (`<!-- Chunk #1 -->`)
+  - [ ] Verify: Chunks matched to correct sections
+  - [ ] Verify: Low-scoring chunks marked as out-of-scope
 
-### Task 8: Documentation
+- [ ] Test Curator backward compatibility
+  - [ ] Run Curator WITHOUT analysis file
+  - [ ] Verify: Falls back to Phase 2 behavior (parse draft.md)
+  - [ ] Run Curator with light mode analysis
+  - [ ] Verify: Uses draft.md (chunks not available)
+
+- [ ] Compare deep vs light workflows (full pipeline)
+  - [ ] Same draft, run: light mode → Architect → Curator
+  - [ ] Same draft, run: deep mode → Architect → Curator
+  - [ ] Compare: Organization quality
+  - [ ] Compare: Time cost (deep mode adds chunk processing)
+  - [ ] Compare: Curator efficiency (chunk-based vs draft parsing)
+
+### Task 9: Documentation
 
 - [ ] Update `progress/PROGRESS.md`
   - [ ] Add Phase 5 checklist
@@ -480,6 +609,44 @@ def test_map_chunk_connections():
 3. Architect creates outline_v2 based on Flow B
 4. User compares and chooses preferred flow
 
+**Scenario 6: Full Workflow with Curator (Deep Mode)**
+1. **Analyzer (Deep):**
+   - Complex draft with 15 quotes
+   - Outputs 32 chunks with scores
+   - Chunks #1, #2, #12 scored high (≥8.0)
+   - Chunk #28 scored low (3.2 - tangent)
+
+2. **Architect:**
+   - Reads chunk map
+   - Creates outline using Flow A
+   - References chunks #1, #2, #12 as anchors
+   - User approves → `1-outline.md`
+
+3. **Curator:**
+   - Detects `mode: deep` in `0-analysis.md`
+   - Reads 32 chunks from analysis
+   - Matches chunks to outline sections:
+     - Chunk #1 → Section 1 (Philosophy)
+     - Chunk #4 → Section 1 (same topic, not in architect's outline)
+     - Chunk #2 → Section 2 (Journey)
+     - Chunk #28 → Out-of-Scope (low score, no section match)
+   - Outputs `2-draft_organized.md` with chunk IDs preserved
+
+4. **Verify:**
+   - Organized draft includes chunk comments: `<!-- Chunk #1 -->`
+   - All high-scoring chunks (≥8.0) in appropriate sections
+   - Low-scoring chunk #28 in "Out-of-Scope" section
+   - Curator found chunk #4 that Architect didn't reference
+   - No re-parsing of draft.md (used chunks directly)
+
+**Scenario 7: Curator Backward Compatibility**
+1. Delete `0-analysis.md` from blog folder
+2. Run Curator (outline already exists from previous run)
+3. Verify: Curator detects no analysis file
+4. Verify: Falls back to Phase 2 behavior (parses draft.md)
+5. Verify: Still produces valid `2-draft_organized.md`
+6. Compare: Output same quality, but Curator took longer (re-parsed draft)
+
 ---
 
 ## 📚 References
@@ -518,8 +685,11 @@ Phase 5 is complete when:
 3. ✅ Connection mapping identifies thematic links
 4. ✅ Flow suggestions provide actionable outline structures
 5. ✅ Architect can build outlines using chunk IDs
-6. ✅ Deep mode noticeably improves quote-heavy draft organization
-7. ✅ User can choose between light and deep modes
+6. ✅ Curator can use chunks for efficient organization (NEW)
+7. ✅ Curator maintains backward compatibility (works without analysis)
+8. ✅ Deep mode noticeably improves quote-heavy draft organization
+9. ✅ User can choose between light and deep modes
+10. ✅ Full workflow tested: Analyzer → Architect → Curator
 
 ---
 
@@ -567,9 +737,10 @@ Phase 5 is complete when:
 
 After Phase 5 completion:
 - Test with real blog posts (your AI journey series)
-- Gather feedback: Does chunk-based outlining help?
-- Consider: Does Curator need chunk awareness?
+- Gather feedback: Does chunk-based workflow help? (Architect + Curator)
+- Measure efficiency gains: Chunk-based vs draft-parsing curation
 - Evaluate: Should Writer reference chunks for section polishing?
+- Consider: Add chunk ID tracking throughout entire pipeline?
 
 ---
 
@@ -580,5 +751,13 @@ After Phase 5 completion:
 3. **Connection threshold:** What similarity score (0.5? 0.6?) best identifies meaningful links?
 4. **Flow count:** Always suggest 3 flows, or variable based on content?
 5. **Architect adaptation:** Should Architect always use chunk IDs in deep mode, or optional?
+6. **Curator chunk matching:** How does Curator decide if a chunk fits a section? (NEW)
+   - Use only chunk topics?
+   - Use chunk score as quality threshold?
+   - LLM reasoning for each chunk-section match?
+   - Hybrid approach (topics + LLM for borderline cases)?
+7. **Chunk ID preservation:** Should chunk IDs flow all the way to Writer phase? (NEW)
+   - Benefits: Full traceability from analysis → final post
+   - Drawback: Extra metadata in organized draft
 
 These questions will be answered through testing and user feedback during implementation.
