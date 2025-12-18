@@ -19,6 +19,233 @@ POSTS_DIR = CURRENT_DIR / "posts"
 draft_filename = "draft.md"
 
 
+# ============================================================================
+# Workflow Discovery Tools: Agent autonomy and context inference
+# ============================================================================
+#
+# These tools enable agents to discover workflow state from the file system
+# without requiring users to specify blog_id in every message.
+# ============================================================================
+
+def get_workflow_status_tool() -> dict:
+    """
+    Discover all blogs and their workflow progress.
+
+    Use this when:
+    - User says "continue" or "next step" without specifying blog_id
+    - Starting a session and need to find what to work on
+    - User asks "where did we leave off?"
+
+    Returns workflow state for all blogs in posts/ directory:
+    - Which steps are complete (has 1-outline.md, 2-draft_organized.md, etc.)
+    - Last modified timestamps
+    - Recommended next action
+
+    Returns:
+        Success: {
+            "status": "success",
+            "blogs": [
+                {
+                    "blog_id": "my-post",
+                    "current_step": 2,
+                    "completed_steps": [1],
+                    "next_action": "Run Curator (Step 2)",
+                    "last_modified": "2025-12-18T14:30:00",
+                    "files": {...}
+                }
+            ],
+            "recommended": "my-post"  # Most recently modified
+        }
+        Error: {"status": "error", "message": "..."}
+
+    Example:
+        >>> get_workflow_status_tool()
+        {
+            "status": "success",
+            "blogs": [{"blog_id": "my-ai-journey-2", "current_step": 2, ...}],
+            "recommended": "my-ai-journey-2"
+        }
+    """
+    try:
+        if not POSTS_DIR.exists():
+            return {
+                "status": "error",
+                "message": f"Posts directory not found: {POSTS_DIR}"
+            }
+
+        blogs = []
+        for blog_dir in POSTS_DIR.iterdir():
+            if not blog_dir.is_dir():
+                continue
+
+            blog_id = blog_dir.name
+            files = {
+                "draft": (blog_dir / "draft.md").exists(),
+                "outline": (blog_dir / "1-outline.md").exists(),
+                "organized": (blog_dir / "2-draft_organized.md").exists(),
+                "final": (blog_dir / "3-final.md").exists(),
+            }
+
+            # Determine current step based on completed files
+            if files["final"]:
+                current_step = 3
+                next_action = "Complete!"
+            elif files["organized"]:
+                current_step = 3
+                next_action = "Run Writer (Step 3)"
+            elif files["outline"]:
+                current_step = 2
+                next_action = "Run Curator (Step 2)"
+            elif files["draft"]:
+                current_step = 1
+                next_action = "Run Architect (Step 1)"
+            else:
+                current_step = 0
+                next_action = "Create draft.md"
+
+            completed_steps = []
+            if files["outline"]:
+                completed_steps.append(1)
+            if files["organized"]:
+                completed_steps.append(2)
+            if files["final"]:
+                completed_steps.append(3)
+
+            # Get last modified time (check all step files)
+            timestamps = []
+            for filename in ["draft.md", "1-outline.md", "2-draft_organized.md", "3-final.md"]:
+                filepath = blog_dir / filename
+                if filepath.exists():
+                    timestamps.append(filepath.stat().st_mtime)
+
+            last_modified = max(timestamps) if timestamps else 0
+
+            blogs.append({
+                "blog_id": blog_id,
+                "current_step": current_step,
+                "completed_steps": completed_steps,
+                "next_action": next_action,
+                "last_modified": last_modified,
+                "last_modified_human":
+                    __import__("datetime").datetime.fromtimestamp(last_modified).isoformat()
+                    if last_modified else "never",
+                "files": files,
+            })
+
+        # Sort by last modified (most recent first)
+        blogs.sort(key=lambda b: b["last_modified"], reverse=True)
+
+        # Recommend most recently modified blog
+        recommended = blogs[0]["blog_id"] if blogs else None
+
+        return {
+            "status": "success",
+            "blogs": blogs,
+            "recommended": recommended,
+            "total_blogs": len(blogs),
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to get workflow status: {str(e)}"
+        }
+
+
+def infer_blog_id_tool(hint: str = None) -> dict:
+    """
+    Infer which blog the user wants to work on.
+
+    Use this when user mentions a blog indirectly:
+    - "Continue where we left off"
+    - "Work on my AI journey post"
+    - "The blog about agents"
+
+    Args:
+        hint: Optional text hint from user (e.g., "AI journey", "my post")
+
+    Returns:
+        Success: {
+            "status": "success",
+            "blog_id": "my-ai-journey-2",
+            "confidence": "high",  # high, medium, low
+            "reason": "Only one blog modified recently"
+        }
+        Multiple matches: {
+            "status": "success",
+            "candidates": ["blog1", "blog2"],
+            "message": "Found multiple matches..."
+        }
+        Error: {"status": "error", "message": "..."}
+
+    Example:
+        >>> infer_blog_id_tool("AI journey")
+        {"status": "success", "blog_id": "my-ai-journey-2", "confidence": "high"}
+    """
+    try:
+        # Get all blogs
+        status = get_workflow_status_tool()
+        if status["status"] == "error":
+            return status
+
+        blogs = status["blogs"]
+        if not blogs:
+            return {
+                "status": "error",
+                "message": "No blogs found in posts/ directory. Create a draft.md first."
+            }
+
+        # Case 1: Only one blog exists
+        if len(blogs) == 1:
+            return {
+                "status": "success",
+                "blog_id": blogs[0]["blog_id"],
+                "confidence": "high",
+                "reason": "Only one blog found",
+                "blog_info": blogs[0],
+            }
+
+        # Case 2: Hint provided - fuzzy match blog_id
+        if hint:
+            hint_lower = hint.lower()
+            matches = [
+                b for b in blogs
+                if hint_lower in b["blog_id"].lower()
+            ]
+
+            if len(matches) == 1:
+                return {
+                    "status": "success",
+                    "blog_id": matches[0]["blog_id"],
+                    "confidence": "high",
+                    "reason": f"Matched hint '{hint}' to blog_id",
+                    "blog_info": matches[0],
+                }
+            elif len(matches) > 1:
+                return {
+                    "status": "success",
+                    "candidates": [m["blog_id"] for m in matches],
+                    "confidence": "low",
+                    "message": f"Found {len(matches)} blogs matching '{hint}': {', '.join([m['blog_id'] for m in matches])}. Please specify."
+                }
+
+        # Case 3: Multiple blogs, no hint - recommend most recent
+        most_recent = blogs[0]
+        return {
+            "status": "success",
+            "blog_id": most_recent["blog_id"],
+            "confidence": "medium",
+            "reason": "Most recently modified blog",
+            "blog_info": most_recent,
+            "alternatives": [b["blog_id"] for b in blogs[1:3]],  # Show top 3
+        }
+
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to infer blog_id: {str(e)}"
+        }
+
+
 def read_draft_tool(blog_id: str) -> dict:
     """
     Retrieves the raw draft content for a blog post.

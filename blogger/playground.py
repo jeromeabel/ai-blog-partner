@@ -25,7 +25,7 @@ AGENTS = {
 }
 
 
-async def run_chat(agent_name: str):
+async def run_chat(agent_name: str, verbose: bool = False):
     agent = AGENTS.get(agent_name)
     if not agent:
         print(
@@ -34,6 +34,8 @@ async def run_chat(agent_name: str):
         return
 
     print(f"--- 🛝 Blogger Playground: {agent_name} ---")
+    if verbose:
+        print("🔍 Verbose mode: ON")
     print("Type 'exit' or 'quit' to stop.\n")
 
     # Setup Session
@@ -88,7 +90,20 @@ async def run_chat(agent_name: str):
                         # Handle function calls (tools)
                         elif hasattr(part, "function_call") and part.function_call:
                             func_name = part.function_call.name
-                            print(f"\r🔧 Agent is using tool: {func_name}")
+                            if verbose:
+                                # Detailed logging
+                                args = part.function_call.args
+                                print(f"\r🔧 Tool: {func_name}")
+                                print(f"   Args: {args}")
+                            else:
+                                # Simple logging (current behavior)
+                                print(f"\r🔧 Agent is using tool: {func_name}")
+                        # Handle function responses (results)
+                        elif hasattr(part, "function_response") and part.function_response:
+                            if verbose:
+                                func_name = part.function_response.name
+                                response = part.function_response.response
+                                print(f"   ✅ Result: {response}")
 
             # Print collected response
             if response_parts:
@@ -111,6 +126,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--agent", default="scribr", help="Agent to chat with (scribr, linguist, architect, curator)"
     )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show detailed tool calls and results"
+    )
 
     args = parser.parse_args()
 
@@ -118,6 +136,6 @@ if __name__ == "__main__":
         print("⚠️  Warning: GOOGLE_API_KEY not found in environment. Check blogger/.env")
 
     try:
-        asyncio.run(run_chat(args.agent))
+        asyncio.run(run_chat(args.agent, verbose=args.verbose))
     except KeyboardInterrupt:
         pass

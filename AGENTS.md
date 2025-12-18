@@ -20,11 +20,17 @@ This is **NOT** an automated content factory. It's a collaborative learning envi
 ### Step 1: Architect (Draft → Outline)
 - **Goal:** Collaborative outline creation through brainstorming
 - **Agent:** `blogger/agents/architect.py` + `scribr.py` (title polishing)
-- **Output:** `posts/{blog_id}/1-outline.md`
+- **Process:**
+  1. **Brainstorm:** Create versions (`outline_v1.md`, `outline_v2.md`, `outline_v3.md`...)
+  2. **Finalize:** User approves a version → Architect copies to `1-outline.md`
+  3. **Approval Gate:** Only `1-outline.md` proceeds to Step 2
+- **Output:** `posts/{blog_id}/1-outline.md` (approved version)
 
 ### Step 2: Curator (Outline → Organized Sections)
 - **Goal:** Filter and organize draft content into outline structure
 - **Agent:** `blogger/agents/curator.py`
+- **Input:** Reads `1-outline.md` (approved version from Step 1)
+  - **Fallback:** If `1-outline.md` missing, lists available versions and asks user
 - **Process:**
   1. **Filter:** Split into "In-Scope" vs "Out-of-Scope"
   2. **Organize:** Match In-Scope content to sections
