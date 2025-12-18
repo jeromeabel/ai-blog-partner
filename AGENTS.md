@@ -1,76 +1,190 @@
-# AGENTS.md
+# AI Blog Partner - LLM Development Guide
 
-This file provides guidance to Claude Code or Gemini CLI when working with code in this repository.
+This file guides all LLM agents (Gemini/Claude) working on the **AI Blog Partner** project.
 
-## Project Overview
+---
 
-**AI Blog Partner** is a system designed to help users transform raw thoughts/drafts into polished technical articles.
-**Core Philosophy:** "Interactive Co-Pilot". The AI does not run a black-box loop. It collaborates with the user at key checkpoints.
+## 🌟 Core Protocol: "The Interactive Partner"
 
-## Development Protocol: Teacher/Student
+This is **NOT** an automated content factory. It's a collaborative learning environment:
 
-- **Teacher (AI):** Guide, Explain, Plan, Review.
-- **Student (Human):** Implement, Verify, Learn.
+**Roles:**
+- **AI (Teacher):** Plan, Review, Explain, Guide. *Never implement silently.*
+- **Human (Student):** Write code, Run tests, Make decisions.
+- **Workflow:** Small testable increments. No automation without approval.
 
-**Strict Adherence:** We build one small, testable piece at a time. We do not move forward until the current piece is verified working.
+---
 
-## New Architecture: The "Interactive Partner"
+## 🏗️ Architecture: 3-Step Linear Workflow
 
-We have moved away from complex `LoopAgents` and rigid state machines. The new workflow is linear and interactive.
+### Step 1: Architect (Draft → Outline)
+- **Goal:** Collaborative outline creation through brainstorming
+- **Agent:** `blogger/agents/architect.py` + `scribr.py` (title polishing)
+- **Output:** `posts/{blog_id}/1-outline.md`
 
-### The 3-Step Core
+### Step 2: Curator (Outline → Organized Sections)
+- **Goal:** Filter and organize draft content into outline structure
+- **Agent:** `blogger/agents/curator.py`
+- **Process:**
+  1. **Filter:** Split into "In-Scope" vs "Out-of-Scope"
+  2. **Organize:** Match In-Scope content to sections
+  3. **Validate:** Check integrity (no content lost)
+- **Output:** `posts/{blog_id}/2-draft_organized.md`
 
-1.  **Step 1: The Architect (Outline)**
-    *   **Goal:** Create a solid structure.
-    *   **Input:** Raw Draft (`draft.md`).
-    *   **Process:** Conversational brainstorming. User critiques, Agent iterates.
-    *   **Output:** `outline.md` (Approved by user).
+### Step 3: Writer (Sections → Polished Post)
+- **Goal:** Iterative section polishing with user feedback
+- **Agent:** `blogger/agents/writer.py` + `scribr.py` (text polishing)
+- **Output:** `posts/{blog_id}/3-final.md`
 
-2.  **Step 2: The Curator (Filter & Organize)**
-    *   **Goal:** Curate in-scope content and organize to match outline.
-    *   **Input:** `draft.md` + `outline.md`.
-    *   **Process:** Two-phase workflow with checkpoints:
-        *   **Phase 2.1 - Filter Scope:** LLM splits content into in-scope vs future topics.
-        *   **Checkpoint:** User reviews `draft_ok.md` + `draft_not_ok.md`.
-        *   **Phase 2.2 - Organize:** LLM reorganizes `draft_ok` to match outline section order.
-        *   **Validation:** Automatic integrity checks + LLM-as-judge for logical flow.
-    *   **Output:** `draft_ok.md`, `draft_not_ok.md`, `draft_ok_organized.md`.
+---
 
-3.  **Step 3: The Writer (Expand & Polish)**
-    *   **Goal:** High-quality prose with full context.
-    *   **Input:** `draft_ok_organized.md` (single file with all sections).
-    *   **Process:** Iterative writing/editing with access to full post context for flow and transitions.
-    *   **Output:** `draft_polished.md`.
+## 🛠️ Coding Standards
 
-## Coding Standards
+### 1. Agents (`blogger/agents/`)
+- **Location:** Co-locate code (`agent.py`) + instructions (`agent.md`)
+- **Simplicity:** Prefer simple ADK Agent wrappers over complex loops
+- **Testing:** Use `blogger/playground.py` for interactive testing
 
-### 1. Agents
-- **Simple is better.** Agents should generally be simple `GenAI` wrappers or basic ADK Agents.
-- **Instructions:** Instructions live in `blogger/instructions/*.md`. Keep them focused on *role* and *tone*, not complex procedural logic.
-
-### 2. Tools
-- **Pure Functions.** Tools should be easy to test without an LLM.
-- **Return Dicts.** Always return `{"status": "success", "data": ...}` or `{"status": "error", "message": ...}`.
+### 2. Tools (`blogger/utils/tools.py`)
+- **Purity:** Pure functions (I/O or validation) with **NO LLM calls**
+- **Pattern:** Agents do reasoning, tools provide capabilities
+- **Return:** Always `{"status": "success", "data": ...}` or `{"status": "error", "message": ...}`
+- **Example:** `validate_content_split_tool` checks integrity, doesn't decide what to filter
 
 ### 3. Testing
-- **Interactive Playground:** We verify Agent behavior by talking to them in a `playground.py` script.
-- **Unit Tests:** We verify Tool logic (splitting, file I/O) with standard `pytest`.
+- **Interactive:** `python -m blogger.playground --agent <name>`
+- **Unit:** `pytest blogger/tests/ -v`
+- **Full workflow:** `adk web` (conversational UI)
 
-## File Structure
+---
 
+## 🔄 Development Workflow: The Protocol
+
+### Planning: One Plan Per Phase
+
+**AI (Teacher) creates a single phase plan:**
+1. Check `progress/PROGRESS.md` for next phase
+2. Create `progress/plans/phaseX_<name>.md` with:
+   - **Goal & Architecture** (what we're building, key decisions)
+   - **Implementation Checklist** (tasks with checkboxes: `- [ ]`)
+   - **Testing Strategy** (unit + integration tests)
+   - **References** (related lessons, legacy code)
+3. Present plan to Human for approval
+4. Update plan based on feedback
+
+**Target length:** ~250-300 lines per phase plan
+
+**Plan Template:**
+```markdown
+# Phase X: [Name] - Implementation Plan
+
+**Status:** Planning | In Progress | Complete
+
+## 🎯 Goal
+[What we're building and why]
+
+## 🏗️ Architecture
+[Agent design, tool design, key decisions]
+
+## 📋 Implementation Checklist
+### Task 1: [Name]
+- [ ] Subtask A
+- [ ] Subtask B
+
+### Task 2: [Name]
+- [ ] Subtask A
+
+## 🧪 Testing Strategy
+[Unit tests, integration tests]
+
+## 📚 References
+[Links to lessons, legacy code]
+```
+
+### Implementation: Iterative Execution
+
+**AI (Teacher) guides:**
+1. Read active plan from `progress/plans/phaseX_<name>.md`
+2. Identify next unchecked task
+3. Explain what Human should implement
+4. Review code after Human writes it
+5. Check off task in plan: `- [x]` when complete
+6. Never implement code yourself
+
+**Human (Student) executes:**
+1. Write code (one file at a time)
+2. Run tests (pytest for tools, playground for agents)
+3. Tell AI when task done
+
+**Plan is a living document:** Update checkboxes in real-time as work progresses.
+
+### Completion: Archive & Document
+
+**When phase complete:**
+1. AI marks all tasks complete in plan: `**Status:** Complete`
+2. AI moves plan to `archives/completed/phaseX_<name>.md`
+3. AI creates lesson in `progress/lessons/phaseX_<name>.md` (what we learned)
+4. Human reviews and approves lesson
+5. AI updates `progress/PROGRESS.md` phase checkboxes
+
+**Golden Rule:** AI never implements silently. Always explain, then wait for human to code.
+
+---
+
+## 📁 Quick Reference
+
+### Key Files
 ```
 blogger/
-  ├── agents.py            # Base agent definitions (Scribr, Linguist)
-  ├── tools.py             # File operation tools (filter_scope, organize_content, etc.)
-  ├── text_utils.py        # Pure text processing functions
-  ├── playground.py        # INTERACTIVE TESTING SCRIPT (The new entrypoint)
-  ├── instructions/        # Agent system prompts
-  └── step_agents/         # specific logic for the 3 steps
-       ├── architect.py    # Step 1: Outline creation
-       ├── curator.py      # Step 2: Filter & organize content
-       └── writer.py       # Step 3: Expand & polish
+├── coordinator.py         # ADK app entry (adk run/web)
+├── playground.py          # Interactive agent testing
+├── agents/                # Agents (code + instructions)
+│   ├── architect.py/.md   # Step 1
+│   ├── curator.py/.md     # Step 2
+│   ├── scribr.py/.md      # Style enforcer
+│   └── ...
+├── utils/
+│   ├── tools.py           # Pure I/O/validation tools
+│   └── text_utils.py      # Text processing
+└── tests/                 # pytest unit tests
+
+posts/{blog_id}/
+├── draft.md               # User input
+├── 1-outline.md           # Step 1 output
+├── 2-draft_organized.md   # Step 2 output
+└── 3-final.md             # Step 3 output
+
+progress/
+├── PROGRESS.md            # Current status
+├── plans/                 # Phase plans (one per phase)
+│   └── phaseX_name.md
+└── lessons/               # Completed phase lessons
 ```
 
-## Git Workflow
-- Commit often.
-- Reference the Task ID from `learning/PROGRESS.md`.
+### Common Commands
+```bash
+# Test agent
+python -m blogger.playground --agent architect
+
+# Run full workflow
+adk web              # Visual UI
+adk run blogger      # CLI
+
+# Run tests
+pytest blogger/tests/ -v
+```
+
+---
+
+## 📚 Documentation Links
+
+- **AGENTS.md** (this file) - LLM development guide
+- **README.md** - User-facing guide (installation, usage)
+- **progress/PROGRESS.md** - Current roadmap & status
+- **archives/** - Historical lessons & deprecated code
+
+---
+
+## Current Status
+
+See `progress/PROGRESS.md` for latest status.

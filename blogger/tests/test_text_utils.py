@@ -1,4 +1,4 @@
-from blogger.text_utils import (
+from blogger.utils.text_utils import (
     check_content_integrity,
     check_heading_order,
     check_outline_structure,

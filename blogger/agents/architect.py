@@ -7,9 +7,9 @@ through interactive conversation.
 
 from google.adk.agents.llm_agent import Agent
 
-from blogger.agents import scribr
-from blogger.tools import read_draft_tool, read_file_tool, save_step_tool
-from blogger.utils import read_instructions
+from blogger.agents.scribr import scribr
+from blogger.utils.tools import read_draft_tool, read_file_tool, save_step_tool
+from blogger.utils.utils import read_instructions
 
 architect = Agent(
     model="gemini-3-pro-preview",

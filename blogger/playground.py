@@ -11,8 +11,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 # Agent Imports
-from blogger.agents import linguist, scribr
-from blogger.step_agents.architect import architect
+from blogger.agents import architect, curator, linguist, scribr
 
 # Load environment variables
 env_path = Path(__file__).parent / ".env"
@@ -22,6 +21,7 @@ AGENTS = {
     "scribr": scribr,
     "linguist": linguist,
     "architect": architect,
+    "curator": curator,
 }
 
 
@@ -109,7 +109,7 @@ async def run_chat(agent_name: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the Blogger Playground")
     parser.add_argument(
-        "--agent", default="scribr", help="Agent to chat with (scribr, linguist)"
+        "--agent", default="scribr", help="Agent to chat with (scribr, linguist, architect, curator)"
     )
 
     args = parser.parse_args()
