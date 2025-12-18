@@ -35,7 +35,7 @@
 
 ## Quick Links
 
-- Architecture: [/AGENTS.md](/AGENTS.md) as single source of truth (CLAUDE.md & GEMINI.md are symlinks)
+- Architecture: [/AGENTS.md](/AGENTS.md) as the single source of truth for LLM (CLAUDE.md & GEMINI.md should stay symbolic links)
 - User Guide: [/README.md](/README.md)
 - Lessons Learned: [/progress/lessons/](/progress/lessons/)
 - Test Agents: `python -m blogger.playground --agent <name>`
