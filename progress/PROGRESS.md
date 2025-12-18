@@ -19,6 +19,12 @@
 - [x] Validation tools (content split, organization)
 - [x] Curator agent (filter & organize)
 - [x] Two-phase workflow (Filter → Organize)
+- [x] Debugging & refinement (2025-12-18)
+  - Fixed file saving issues (save immediately after validation)
+  - Fixed template variable errors (changed `{blog_id}` → `<blog_id>`)
+  - Upgraded model for reliability (gemini-3-pro-preview)
+  - Added progress reporting & verbose mode
+  - Corrected filename convention (`2-draft_organized.md`)
 
 ### ⏳ Phase 3: The Writer
 - [ ] Writer agent implementation
@@ -29,7 +35,8 @@
 
 ## Quick Links
 
-- Architecture: [/AGENTS.md](/AGENTS.md)
+- Architecture: [/AGENTS.md](/AGENTS.md) as single source of truth (CLAUDE.md & GEMINI.md are symlinks)
 - User Guide: [/README.md](/README.md)
-- Historical Lessons: [/archives/lessons/](/archives/lessons/)
+- Lessons Learned: [/progress/lessons/](/progress/lessons/)
 - Test Agents: `python -m blogger.playground --agent <name>`
+- Test with Verbose: `python -m blogger.playground --agent <name> --verbose`

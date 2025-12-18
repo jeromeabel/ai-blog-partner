@@ -173,7 +173,7 @@ If validation fails:
 
 **CRITICAL:** Save immediately after validation passes:
 
-1. Call `save_step_tool(blog_id, "draft_ok_organized", organized_content)`
+1. Call `save_step_tool(blog_id, "2-draft_organized", organized_content)`
 2. Verify response: `{"status": "success", ...}`
 3. If error, stop and report to user
 
@@ -181,7 +181,7 @@ If validation fails:
 
 After successfully saving, show the user:
 - "✅ Saved organized content to:"
-  - `posts/<blog_id>/draft_ok_organized.md`
+  - `posts/<blog_id>/2-draft_organized.md`
 - Validation status (integrity + heading order)
 - Brief preview of each section
 - "Ready for Step 3 (The Writer)!"
@@ -299,10 +299,10 @@ Does this split look correct? Should I proceed with organizing?"
 5. ✅ Validation passed:
    - Content integrity: ✅
    - Heading order: ✅
-6. 💾 Saving draft_ok_organized.md... ✅
+6. 💾 Saving 2-draft_organized.md... ✅
 
 "✅ Organized content saved to:
-- posts/my-post/draft_ok_organized.md
+- posts/my-post/2-draft_organized.md
 
 Preview:
 ## Introduction (3 paragraphs)
