@@ -855,6 +855,7 @@ def extract_quotes_with_sources(draft_text: str) -> list[dict]:
     - "Quote" — Author
     - > Quote
     - - Source: Author
+    - Smart quotes and markdown formatting
 
     Args:
         draft_text: The raw draft content
@@ -865,48 +866,108 @@ def extract_quotes_with_sources(draft_text: str) -> list[dict]:
     quotes = []
     lines = draft_text.splitlines()
     
-    # Pattern 1: Blockquotes (> quote)
     i = 0
     while i < len(lines):
         line = lines[i].strip()
+        
+        # Pattern 1: Blockquotes (single or multi-line)
         if line.startswith(">"):
-            quote_text = line[1:].strip()
+            start_line = i
+            quote_lines = []
+            
+            # Consume consecutive blockquote lines
+            while i < len(lines) and lines[i].strip().startswith(">"):
+                # Remove '>' and strip
+                cleaned = lines[i].strip()[1:].strip()
+                if cleaned: # Skip empty > lines if they are just spacers
+                    quote_lines.append(cleaned)
+                i += 1
+            
+            # Join content
+            full_quote_text = " ".join(quote_lines)
             source = "Unknown"
             
-            # Check next line for attribution
-            if i + 1 < len(lines):
-                next_line = lines[i+1].strip()
+            # Check for attribution inside the blockquote text (at the end)
+            # Regex to find attribution at end of string: "Quote" — Author
+            # Handles - or — or --
+            match = re.search(r'(.*?)\s*(?:—|--|-)\s*(.*)$', full_quote_text)
+            if match:
+                # Potential attribution found
+                # Verify the "source" part isn't too long (avoid false positives like hyphenated words)
+                candidate_text = match.group(1).strip()
+                candidate_source = match.group(2).strip()
+                
+                # Heuristic: Source usually short (< 50 chars) and Quote is distinct
+                if len(candidate_source) < 50:
+                    full_quote_text = candidate_text
+                    source = candidate_source
+            
+            # If no internal attribution, check the *next* line in the draft
+            if source == "Unknown" and i < len(lines):
+                next_line = lines[i].strip()
                 if next_line.startswith(("- ", "— ", "-- ")):
                     source = next_line.lstrip("-— ").strip()
                     if source.lower().startswith("source:"):
                         source = source[7:].strip()
                     i += 1
+                elif next_line.startswith(("http://", "https://")):
+                    source = next_line
+                    i += 1
+                elif next_line.startswith("[") and "](" in next_line:
+                    source = next_line
+                    i += 1
             
+            # Clean Markdown (bold, italic, smart quotes)
+            # Remove * and _
+            full_quote_text = re.sub(r'[\*_]', '', full_quote_text)
+            # Remove surrounding quotes if present (standard or smart)
+            full_quote_text = full_quote_text.strip(' "“”')
+
+            if full_quote_text:
+                quotes.append({
+                    "text": full_quote_text,
+                    "source": source,
+                    "line_number": start_line
+                })
+            
+            continue # Already advanced i
+        
+        # Pattern 4: Narrative Attribution ("Author says...")
+        # Matches: Simon Willison says... "Quote"
+        # Be conservative: Require 2 Capitalized Words for author
+        matches_narrative = re.findall(r'\b([A-Z][a-z]+ [A-Z][a-z]+)\s+(?:aptly )?(?:says|said|wrote|writes|notes|claims|argues).*?[“"]([^”"]+)[”"]', line)
+        for src, text in matches_narrative:
+            clean_text = re.sub(r'[\*_]', '', text.strip())
             quotes.append({
-                "text": quote_text,
-                "source": source,
+                "text": clean_text,
+                "source": src.strip(),
                 "line_number": i
             })
-        
-        # Pattern 2: Inline quotes with attribution ("Quote" — Author)
-        elif '"' in line:
-            matches = re.findall(r'"([^\"]+)"\s*[—\-\-]+\s*([^,\.\n]+)', line)
-            for text, src in matches:
+
+        # Pattern 2: Inline quotes with attribution
+        # Enhance regex to support smart quotes and diverse dashes
+        # Matches: "Quote" — Author OR “Quote” — Author
+        matches = re.findall(r'[“"]([^”"]+)[”"]\s*(?:—|--|-)\s*([^,\.\n]+)', line)
+        for text, src in matches:
+             # Clean markdown inside inline quote too
+            clean_text = re.sub(r'[\*_]', '', text.strip())
+            quotes.append({
+                "text": clean_text,
+                "source": src.strip(),
+                "line_number": i
+            })
+            
+        # Pattern 3: Simple quoted text with [source: ...]
+        if not matches:
+             # Support smart quotes here too
+            simple_matches = re.findall(r'[“"]([^”"]+)[”"]\s*\[source:\s*([^\]]+)\]', line)
+            for text, src in simple_matches:
+                clean_text = re.sub(r'[\*_]', '', text.strip())
                 quotes.append({
-                    "text": text.strip(),
+                    "text": clean_text,
                     "source": src.strip(),
                     "line_number": i
                 })
-            
-            # Pattern 3: Simple quoted text "Quote" [source: URL]
-            if not matches:
-                simple_matches = re.findall(r'"([^\"]+)"\s*\[source:\s*([^\]]+)\]', line)
-                for text, src in simple_matches:
-                    quotes.append({
-                        "text": text.strip(),
-                        "source": src.strip(),
-                        "line_number": i
-                    })
 
         i += 1
         
@@ -975,6 +1036,8 @@ def extract_main_topics(draft_text: str) -> list[str]:
 def save_analysis_tool(blog_id: str, analysis_data: dict) -> dict:
     """
     Generate and save 0-analysis.md with YAML front-matter.
+    
+    Supports both 'light' and 'deep' modes.
 
     Args:
         blog_id: Unique identifier for the blog
@@ -992,10 +1055,21 @@ def save_analysis_tool(blog_id: str, analysis_data: dict) -> dict:
         #   "metrics": {...},
         #   "topics": [...],
         #   "recommended_mode": "quote-driven"|"topic-driven",
-        #   "summary": "Human-readable summary..."
+        #   "summary": "Human-readable summary...",
+        #   "mode": "light"|"deep",
+        #   # Deep mode only:
+        #   "chunks": [{id, score, text, ...}],
+        #   "narrative_flows": [{name, description, sequence, avg_score}],
+        #   "connections": {chunk_id: [connected_ids]}
         # }
         
+        mode = analysis_data.get('mode', 'light')
         metrics = analysis_data.get("metrics", {})
+        chunks = analysis_data.get("chunks", [])
+        
+        # Calculate deep metrics if available
+        total_chunks = len(chunks)
+        high_scoring_chunks = len([c for c in chunks if float(c.get('score', 0)) >= 8.0])
         
         # Build topics list for YAML
         topics_yaml = ""
@@ -1006,20 +1080,31 @@ def save_analysis_tool(blog_id: str, analysis_data: dict) -> dict:
         topics_md = ""
         for i, t in enumerate(analysis_data.get('topics', [])):
             topics_md += f"{i+1}. **{t.title()}**\n"
-        
-        yaml_content = f"""
---- 
+            
+        # Build YAML Content
+        yaml_content = f"""--- 
 type: {analysis_data.get('type', 'mixed')}
 complexity: {analysis_data.get('complexity', 'medium')}
-mode: light
+mode: {mode}
 detected_quote_count: {metrics.get('quote_count', 0)}
 detected_code_blocks: {metrics.get('code_block_count', 0)}
 main_topics:
 {topics_yaml.rstrip()}
-recommended_architect_mode: {analysis_data.get('recommended_mode', 'topic-driven')}
----
+recommended_architect_mode: {analysis_data.get('recommended_mode', 'topic-driven')}"""
 
-# Draft Analysis (Light)
+        if mode == 'deep':
+            yaml_content += f"""
+total_chunks: {total_chunks}
+high_scoring_chunks: {high_scoring_chunks}
+narrative_flows:"""
+            for flow in analysis_data.get('narrative_flows', []):
+                yaml_content += f"\n  - {flow.get('name', 'unnamed')}"
+                
+        yaml_content += "\n---\n"
+
+        # Build Markdown Content
+        md_content = f"""
+# Draft Analysis ({mode.title()})
 
 ## Summary
 {analysis_data.get('summary', 'No summary provided.')}
@@ -1030,17 +1115,53 @@ recommended_architect_mode: {analysis_data.get('recommended_mode', 'topic-driven
 ## Complexity Assessment
 - **Score:** {analysis_data.get('score', 'N/A')}/10
 - **Rationale:** {analysis_data.get('rationale', 'Based on content metrics.')}
-- **Suggested Mode:** Light analysis sufficient for now.
-
----
-*This analysis was generated automatically. Review the summary, then proceed to Architect for outline creation.*
 """
+
+        # Add Deep Analysis Sections
+        if mode == 'deep':
+            md_content += "\n## Content Chunks\n"
+            
+            # Group chunks by score
+            high = [c for c in chunks if float(c.get('score', 0)) >= 8.0]
+            mid = [c for c in chunks if 5.0 <= float(c.get('score', 0)) < 8.0]
+            low = [c for c in chunks if float(c.get('score', 0)) < 5.0]
+            
+            md_content += f"\n### High-Scoring Chunks (>=8.0) - {len(high)} total\n"
+            for c in high:
+                md_content += f"\n**Chunk #{c['id']}** [{c['type'].title()}] (Score: {c['score']}/10)\n"
+                md_content += f"> {c['text'][:200]}..." if len(c['text']) > 200 else f"> {c['text']}"
+                md_content += f"\n> **Rationale:** {c.get('rationale', 'N/A')}\n"
+                
+            md_content += f"\n### Mid-Scoring Chunks (5.0-7.9) - {len(mid)} total\n"
+            for c in mid:
+                md_content += f"\n**Chunk #{c['id']}** (Score: {c['score']}/10)\n"
+                
+            md_content += f"\n### Low-Scoring Chunks (<5.0) - {len(low)} total\n"
+            for c in low:
+                md_content += f"\n**Chunk #{c['id']}** (Score: {c['score']}/10)\n"
+
+            md_content += "\n## Suggested Narrative Flows\n"
+            for flow in analysis_data.get('narrative_flows', []):
+                md_content += f"\n### {flow.get('name', 'Unnamed Flow')} (Avg Score: {flow.get('avg_score', 'N/A')})\n"
+                md_content += f"**Structure:** {flow.get('description', '')}\n"
+                md_content += "```\n"
+                # Add sequence visualizer if available
+                seq = flow.get('chunk_sequence', [])
+                if seq:
+                    md_content += " -> ".join([f"#{cid}" for cid in seq[:10]])
+                    if len(seq) > 10:
+                        md_content += "..."
+                md_content += "\n```\n"
+
+        md_content += "\n---\n*This analysis was generated automatically. Review the summary, then proceed to Architect for outline creation.*"
+        
+        full_content = yaml_content + md_content
         
         output_path = POSTS_DIR / blog_id / "0-analysis.md"
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
         with open(output_path, "w") as f:
-            f.write(yaml_content)
+            f.write(full_content)
             
         return {
             "status": "success",
@@ -1054,12 +1175,14 @@ recommended_architect_mode: {analysis_data.get('recommended_mode', 'topic-driven
 def read_analysis_tool(blog_id: str) -> dict:
     """
     Read 0-analysis.md and parse its YAML front-matter.
+    
+    Handles both light and deep mode formats.
 
     Args:
         blog_id: Unique identifier for the blog
 
     Returns:
-        Success: {"status": "success", "data": {...}, "summary": "..."}
+        Success: {"status": "success", "data": {...}, "summary": "...", "chunks": [...]}
         Error: {"status": "error", "message": "..."}
     """
     try:
@@ -1070,7 +1193,6 @@ def read_analysis_tool(blog_id: str) -> dict:
         with open(analysis_path, "r") as f:
             content = f.read()
             
-        # Very simple YAML parser for our specific format
         if not content.startswith("---"):
             return {"status": "error", "message": "Invalid analysis file format (missing front-matter)."}
             
@@ -1079,31 +1201,290 @@ def read_analysis_tool(blog_id: str) -> dict:
             return {"status": "error", "message": "Invalid analysis file format (incomplete front-matter)."}
             
         yaml_text = parts[1]
-        summary_text = parts[2].strip()
+        body_text = parts[2].strip()
         
+        # Improved YAML-ish parser
         data = {}
+        current_key = None
         for line in yaml_text.strip().split("\n"):
+            line = line.rstrip()
+            if not line: continue
+            
+            if line.startswith("  - "): # List item
+                if current_key and current_key in data and isinstance(data[current_key], list):
+                    data[current_key].append(line[4:].strip())
+                continue
+                
             if ":" in line:
                 key, val = line.split(":", 1)
                 key = key.strip()
                 val = val.strip()
                 
-                # Handle simple lists
-                if not val and key == "main_topics":
+                if not val: # Start of a list
                     data[key] = []
-                elif key.startswith("- "):
-                    if "main_topics" in data:
-                        data["main_topics"].append(key[2:].strip())
+                    current_key = key
                 else:
                     data[key] = val
-            elif line.strip().startswith("- "):
-                if "main_topics" in data:
-                    data["main_topics"].append(line.strip()[2:].strip())
-                    
+                    current_key = key
+        
+        # Extract chunks from the Markdown body if mode is deep
+        chunks = []
+        if data.get('mode') == 'deep':
+            # Look for "## Content Chunks" section
+            if "## Content Chunks" in body_text:
+                chunk_section = body_text.split("## Content Chunks")[1]
+                # Regex to find Chunk #ID [Type] (Score: X/10)
+                # and the following blockquote
+                chunk_matches = re.finditer(
+                    r"\*\*Chunk #(\d+)\*\*(?:\s+\[(\w+)\])?\s+\(Score:\s+([\d\.]+)/10\)\n>\s+(.*?)(?=\n\n\*\*Chunk|## Suggested|$)", 
+                    chunk_section, 
+                    re.DOTALL
+                )
+                for m in chunk_matches:
+                    chunks.append({
+                        "id": m.group(1),
+                        "type": m.group(2) or "unknown",
+                        "score": m.group(3),
+                        "text_preview": m.group(4).strip()
+                    })
+
         return {
             "status": "success",
             "data": data,
-            "summary": summary_text
+            "summary": body_text,
+            "chunks": chunks
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to read analysis: {str(e)}"}
+
+
+
+# ============================================================================
+# Phase 5 Tools: Deep Analysis (Chunking)
+# ============================================================================
+
+def split_draft_into_chunks(draft_text: str) -> list[dict]:
+    """
+    Split draft into analyzable chunks (quotes, commentary, code, headings).
+    
+    Preserves markdown structure and line numbers.
+    Assigns sequential IDs ("1", "2", ...).
+    
+    Args:
+        draft_text: The raw draft content
+        
+    Returns:
+        list[dict]: List of {id, type, text, line_start, line_end}
+    """
+    if not draft_text:
+        return []
+
+    lines = draft_text.splitlines()
+    chunks = []
+    
+    current_lines = []
+    current_type = None
+    start_line = 0
+    in_code_block = False
+    
+    # Helper to finalize the current chunk
+    def finalize_chunk(end_line_idx):
+        if not current_lines:
+            return
+        
+        # Determine final type if not set (default to commentary)
+        final_type = current_type if current_type else "commentary"
+        
+        # Join lines
+        text = "\n".join(current_lines)
+        
+        chunks.append({
+            "id": str(len(chunks) + 1),
+            "type": final_type,
+            "text": text,
+            "line_start": start_line + 1,  # 1-based indexing
+            "line_end": end_line_idx + 1   # 1-based indexing
+        })
+        
+    for i, line in enumerate(lines):
+        stripped = line.strip()
+        
+        # 1. Code Block Handling
+        if stripped.startswith("```"):
+            if in_code_block:
+                # End of code block
+                current_lines.append(line)
+                finalize_chunk(i)
+                current_lines = []
+                current_type = None
+                in_code_block = False
+            else:
+                # Start of code block
+                if current_lines:
+                    finalize_chunk(i - 1)
+                
+                start_line = i
+                current_lines = [line]
+                current_type = "code"
+                in_code_block = True
+            continue
+            
+        if in_code_block:
+            current_lines.append(line)
+            continue
+            
+        # 2. Empty Line Handling
+        if not stripped:
+            if current_lines:
+                finalize_chunk(i - 1)
+                current_lines = []
+                current_type = None
+            continue
+            
+        # 3. Heading Handling
+        if stripped.startswith("#"):
+            if current_lines:
+                finalize_chunk(i - 1)
+            
+            # Headings are their own chunks
+            start_line = i
+            current_lines = [line]
+            current_type = "heading"
+            finalize_chunk(i)
+            current_lines = []
+            current_type = None
+            continue
+            
+        # 4. Quote Handling
+        if stripped.startswith(">"):
+            if current_type != "quote" and current_lines:
+                finalize_chunk(i - 1)
+                current_lines = []
+                
+            if not current_lines:
+                start_line = i
+                current_type = "quote"
+                
+            current_lines.append(line)
+            continue
+            
+        # 5. Attribution Handling (for quotes)
+        # Check if this line is an attribution for the preceding quote
+        # E.g., "- Author Name" or "— Author Name"
+        if current_type == "quote" and stripped.startswith(("-", "—", "--")):
+            current_lines.append(line)
+            continue
+            
+        # 6. Normal Text (Commentary)
+        # If we were in a quote, this is a new commentary chunk
+        if current_type == "quote":
+            finalize_chunk(i - 1)
+            current_lines = []
+            current_type = None
+            
+        if not current_lines:
+            start_line = i
+            current_type = "commentary"
+            
+        current_lines.append(line)
+        
+    # Finalize any remaining lines
+    if current_lines:
+        finalize_chunk(len(lines) - 1)
+        
+    return chunks
+
+
+def extract_chunk_context(chunks: list[dict], chunk_id: str) -> dict:
+    """
+    Get a chunk and its immediate neighbors by ID.
+    
+    Args:
+        chunks: List of chunk dicts
+        chunk_id: The ID to find
+        
+    Returns:
+        dict: {chunk, prev_chunk, next_chunk} (neighbors can be None)
+    """
+    target_index = -1
+    for i, chunk in enumerate(chunks):
+        if chunk["id"] == chunk_id:
+            target_index = i
+            break
+            
+    if target_index == -1:
+        return {
+            "chunk": None,
+            "prev_chunk": None,
+            "next_chunk": None,
+            "error": "Chunk ID not found"
+        }
+        
+    return {
+        "chunk": chunks[target_index],
+        "prev_chunk": chunks[target_index - 1] if target_index > 0 else None,
+        "next_chunk": chunks[target_index + 1] if target_index < len(chunks) - 1 else None
+    }
+
+
+def calculate_chunk_similarity(chunk1_text: str, chunk2_text: str) -> float:
+    """
+    Calculate Jaccard similarity between two text chunks.
+    
+    Args:
+        chunk1_text: Text of first chunk
+        chunk2_text: Text of second chunk
+        
+    Returns:
+        float: Similarity score between 0.0 and 1.0
+    """
+    if not chunk1_text or not chunk2_text:
+        return 0.0
+        
+    # Basic tokenization: lowercase, alpha-numeric only, 3+ chars
+    def tokenize(text):
+        tokens = re.findall(r'\b\w{3,}\b', text.lower())
+        # Filter out very common words (subset of topics tool stop words)
+        stop_words = {"the", "and", "for", "with", "that", "this", "from"}
+        return set(t for t in tokens if t not in stop_words)
+        
+    set1 = tokenize(chunk1_text)
+    set2 = tokenize(chunk2_text)
+    
+    if not set1 or not set2:
+        return 0.0
+        
+    intersection = len(set1.intersection(set2))
+    union = len(set1.union(set2))
+    
+    return float(intersection) / union
+
+
+def map_chunk_connections(chunks: list[dict], threshold: float = 0.2) -> dict:
+    """
+    Find thematic connections between chunks based on text similarity.
+    
+    Args:
+        chunks: List of chunk dicts (must have 'id' and 'text')
+        threshold: Minimum similarity to consider a connection
+        
+    Returns:
+        dict: {chunk_id: [list of connected chunk_ids]}
+    """
+    connections = {c["id"]: [] for c in chunks}
+    
+    # Compare all pairs (n^2, but okay for typical blog draft size of 20-50 chunks)
+    for i in range(len(chunks)):
+        for j in range(i + 1, len(chunks)):
+            c1 = chunks[i]
+            c2 = chunks[j]
+            
+            sim = calculate_chunk_similarity(c1["text"], c2["text"])
+            
+            if sim >= threshold:
+                connections[c1["id"]].append(c2["id"])
+                connections[c2["id"]].append(c1["id"])
+                
+    return connections
+
+

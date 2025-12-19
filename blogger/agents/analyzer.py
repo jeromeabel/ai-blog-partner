@@ -13,7 +13,9 @@ from blogger.utils.tools import (
     extract_main_topics,
     save_analysis_tool,
     read_draft_tool,
-    read_analysis_tool
+    read_analysis_tool,
+    split_draft_into_chunks,
+    map_chunk_connections
 )
 from blogger.utils.utils import read_instructions
 
@@ -31,7 +33,9 @@ def create_analyzer():
             extract_main_topics,
             save_analysis_tool,
             read_draft_tool,
-            read_analysis_tool
+            read_analysis_tool,
+            split_draft_into_chunks,
+            map_chunk_connections
         ],
     )
 

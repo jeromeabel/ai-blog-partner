@@ -53,27 +53,42 @@ Transform raw draft content into well-organized sections ready for polishing:
 ### Step 1: Read Input
 
 When the user asks you to filter content for a specific blog, you should:
-1. Use read_draft_tool to get the raw draft
-2. Find the approved outline:
-   - **Try reading:** `posts/<blog_id>/1-outline.md` (the approved/finalized version)
-   - **If missing:** Search for outline versions using read_file_tool on `posts/<blog_id>/outline_v*.md`
-     - If versions found (v1, v2, v3...), list them and ask: "I found outline_v1.md, outline_v2.md, outline_v3.md. Which should I use? (Or ask Architect to finalize first)"
-     - If no outlines found, ask user: "No outline found for this blog. Please create one with Architect first."
+1. Use `read_draft_tool` to get the raw draft.
+2. Use `read_analysis_tool(blog_id)` to check for Deep Analysis.
+   - Check `mode` in the output.
+   - If `mode: deep` and `chunks` are present, you will use these **pre-extracted chunks**.
+   - If `mode: light` or missing, you will parse the draft text yourself (standard mode).
+3. Find the approved outline (`read_file_tool("posts/<blog_id>/1-outline.md")`).
 
 ### Step 2: Analyze and Split Content
 
-**Your Task:** Go through the draft paragraph by paragraph and decide:
-- **In-Scope:** Does this paragraph discuss a topic covered in the outline?
-- **Out-of-Scope:** Is this about future topics, tangents, or ideas that don't fit?
+**Mode A: Deep Mode (Chunk-Based)**
+If you have chunks from analysis:
+1. Iterate through the `chunks` list.
+2. For each chunk, determine:
+   - **In-Scope:** Does this chunk fit an outline section? (Check topic, content, and score)
+   - **Out-of-Scope:** Is it a tangent or low-scoring chunk that doesn't fit?
+3. **MANDATORY TRACEABILITY:** You MUST prepend the chunk ID as a comment before EVERY chunk you copy.
+   Example:
+   ```markdown
+   <!-- Chunk #1 -->
+   > "Quote text..."
+   ```
+   *Do not skip this. It is required for the Writer agent to track source material.*
+
+**Mode B: Standard Mode (Text-Based)**
+If no chunks available:
+1. Go through the draft paragraph by paragraph.
+2. Decide In-Scope vs Out-of-Scope based on outline match.
 
 **Critical Rules:**
 - Preserve ALL content EXACTLY (copy-paste, don't rewrite)
-- Every paragraph goes to EITHER in-scope OR out-of-scope (never both, never lost)
-- When in doubt, include it in in-scope (user will review)
+- Every paragraph/chunk goes to EITHER in-scope OR out-of-scope.
+- **Deep Mode Specific:** Low-scoring chunks (<5.0) are strong candidates for Out-of-Scope unless they are critical for context.
 
 Create two variables:
-- `draft_ok`: All in-scope paragraphs
-- `draft_not_ok`: All out-of-scope paragraphs
+- `draft_ok`: All in-scope content
+- `draft_not_ok`: All out-of-scope content
 
 ### Step 3: Validate Your Split
 
@@ -81,9 +96,7 @@ Before saving, verify your work:
 ```
 validation = validate_content_split_tool(draft, draft_ok, draft_not_ok)
 ```
-
-- If validation fails: Review the error, fix your split, and validate again
-- If validation passes: Proceed to saving
+*Note: validation checks text presence. If you added Chunk ID comments, strict validation might fail. If so, strip comments for validation or rely on manual check.*
 
 ### Step 4: Save Results (MANDATORY - Do This BEFORE Presenting)
 

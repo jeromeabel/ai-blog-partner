@@ -42,16 +42,19 @@ adk run blogger
 
 ## How It Works
 
-### The 3-Step Process
+### The 4-Step Process
 
-Your blog post goes through three collaborative steps:
+Your blog post goes through four collaborative steps:
 
 ```
-1. 🏗️ Architect    Draft → Outline
-   Brainstorm structure together, approve outline
+0. 🔍 Analyzer     Draft → Analysis
+   Assess complexity, extract chunks (Deep Mode), map connections
 
-2. 🎨 Curator      Outline → Organized Sections
-   Filter and organize content, validate integrity
+1. 🏗️ Architect    Draft + Analysis → Outline
+   Brainstorm structure using analysis insights, approve outline
+
+2. 🎨 Curator      Outline + Analysis → Organized Sections
+   Filter and organize content using chunks, validate integrity
 
 3. ✍️ Writer       Sections → Polished Post
    Iterative polishing with your feedback
@@ -68,32 +71,37 @@ $ adk web
 
 You: Create a blog post from posts/my-post/draft.md
 
-Coordinator: I've loaded your draft. I see themes about AI adoption
-             and organizational challenges. Let me call the Architect
-             to help structure this.
+Coordinator: I've loaded your draft. Let's start by analyzing it.
 
-Architect: I see two possible angles:
-           A) Journey arc (Hype → Reality → Lessons)
-           B) Myth-busting (Promises vs Reality)
+Analyzer: This draft is complex (Score: 8.5/10) with 15 detected quotes.
+          I recommend running Deep Analysis to map connections.
+          Proceed?
+
+You: Yes, please.
+
+Analyzer: Analysis complete. Found 8 high-scoring "anchor" quotes.
+
+Coordinator: Great. Now I'll call the Architect to build an outline
+             using those anchors.
+
+Architect: Based on the analysis, I see two possible angles:
+           A) Quote-Driven Journey (Karpathy → You → Lessons)
+           B) Thematic Clusters (Philosophy vs Practice)
            Which fits your message better?
 
-You: B - I want to challenge assumptions
+You: A - I like the narrative arc.
 
 Architect: Perfect. Here's a proposed structure...
-           ## 1. The Productivity Myth
-           ## 2. Hidden Team Costs
-           ## 3. What Actually Works
+           ## 1. The Teacher's Voice (Anchor: Karpathy Quote)
+           ## 2. The Student's Struggle
+           ## 3. The Breakthrough
 
            What do you think?
 
-You: Great! Can we split section 2 into two parts?
-
-Architect: Good idea. Here's the revised version... [shows updated outline]
-
-You: Perfect, save it!
+You: Great! Save it.
 
 Coordinator: ✓ Saved to posts/my-post/1-outline.md
-             Ready for Step 2 when you are!
+             Ready for Step 2 (Curator) when you are!
 ```
 
 ---
@@ -104,6 +112,7 @@ Coordinator: ✓ Saved to posts/my-post/1-outline.md
 
 ```bash
 # Test individual agents
+python -m blogger.playground --agent analyzer --mode deep
 python -m blogger.playground --agent architect
 python -m blogger.playground --agent curator
 python -m blogger.playground --agent scribr
@@ -153,13 +162,16 @@ ai-blog-partner/
 ## The Agent Team
 
 **Coordinator**
-Guides you through the 3-step process. Calls specialized agents when needed.
+Guides you through the process. Calls specialized agents when needed.
+
+**Analyzer** (Step 0)
+Pre-processes drafts. "Deep Mode" extracts chunks and maps connections for complex posts.
 
 **Architect** (Step 1)
-Brainstorms outline structures with you. Uses Scribr sub-agent to polish titles.
+Brainstorms outline structures with you. Uses analysis to identify key anchors.
 
 **Curator** (Step 2)
-Filters draft content against outline, organizes into sections, validates integrity.
+Filters draft content against outline, using analysis chunks for smarter organization.
 
 **Writer** (Step 3)
 Polishes sections iteratively based on your feedback.

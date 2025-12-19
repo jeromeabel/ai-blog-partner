@@ -15,26 +15,28 @@ This is **NOT** an automated content factory. It's a collaborative learning envi
 
 ---
 
-## 🏗️ Architecture: 3-Step Linear Workflow
+## 🏗️ Architecture: 4-Step Linear Workflow
+
+### Step 0: Analyzer (Pre-processing)
+- **Goal:** Assess draft complexity and structure
+- **Agent:** `blogger/agents/analyzer.py`
+- **Modes:**
+  - **Light Mode:** Quick metrics & topic detection (Default)
+  - **Deep Mode:** Full chunk extraction, scoring, and connection mapping (For complex drafts)
+- **Output:** `posts/{blog_id}/0-analysis.md`
 
 ### Step 1: Architect (Draft → Outline)
 - **Goal:** Collaborative outline creation through brainstorming
 - **Agent:** `blogger/agents/architect.py` + `scribr.py` (title polishing)
-- **Process:**
-  1. **Brainstorm:** Create versions (`outline_v1.md`, `outline_v2.md`, `outline_v3.md`...)
-  2. **Finalize:** User approves a version → Architect copies to `1-outline.md`
-  3. **Approval Gate:** Only `1-outline.md` proceeds to Step 2
+- **Input:** Reads `draft.md` and `0-analysis.md`
+  - **Deep Mode:** Uses high-scoring chunks as anchors
 - **Output:** `posts/{blog_id}/1-outline.md` (approved version)
 
 ### Step 2: Curator (Outline → Organized Sections)
 - **Goal:** Filter and organize draft content into outline structure
 - **Agent:** `blogger/agents/curator.py`
-- **Input:** Reads `1-outline.md` (approved version from Step 1)
-  - **Fallback:** If `1-outline.md` missing, lists available versions and asks user
-- **Process:**
-  1. **Filter:** Split into "In-Scope" vs "Out-of-Scope"
-  2. **Organize:** Match In-Scope content to sections
-  3. **Validate:** Check integrity (no content lost)
+- **Input:** Reads `1-outline.md` and `0-analysis.md`
+  - **Deep Mode:** Uses pre-extracted chunks for filtering (faster, smarter)
 - **Output:** `posts/{blog_id}/2-draft_organized.md`
 
 ### Step 3: Writer (Sections → Polished Post)

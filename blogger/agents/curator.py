@@ -15,6 +15,7 @@ from blogger.utils.tools import (
     save_step_tool,
     validate_content_split_tool,
     validate_organization_tool,
+    read_analysis_tool,
 )
 from blogger.utils.utils import read_instructions
 
@@ -32,5 +33,6 @@ curator = Agent(
         save_step_tool,
         validate_content_split_tool,
         validate_organization_tool,
+        read_analysis_tool,
     ],
 )
