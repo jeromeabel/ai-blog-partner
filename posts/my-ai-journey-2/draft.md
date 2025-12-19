@@ -1,16 +1,40 @@
 
 
+
+# TITLE: My Ai-Journey part 2: A Balanced Shift
+
+## AUDIENCE
+FOCUS on developers, teams tech industry: human feeling, secure jobs, be ready, share experiences
+
+## FIRST IDEA OF A PLAN
+- evaluate the shift (==BIG==, ==HARDER==), pressure on us (FOMO), seniors feedbacks (very useful, if not imposter syndrome AI fatigue, so hard to evaluate we are inside the movement, so hard for a quite new person in the industry), paradigm non determinist tool, force multiplier
+- evaluate the promise of productivity, how to measure, results are not unanime, there are bad experiences
+- list & listen to negative impacts/experiences to address them! (teams adoption, reality dilemna, skills, confiance, déresponsabilisation, context switching, reviews, AI Makes Everyone Average, a lots of docs for machines/not humans(paradox of spec driven))
+- Opportunities, embrace chaos. the interesting parts (specs/code/artefacts, role of coding/high level task, conversations/ihm une nouvelle façon de communiquer avec les machines au delà de la commande, deliberate learning/invest in mentoring & learning, orchestrator/more PM skills, ship prototypes / test ideas in YOLO MODE, dev workflows (introspection de ces propres gestes, vocabulaires, tâches) ), find joy/pleasure in craft
+- Open questions: what and how to get the hard skills fondations/hard parts
+- ENDING: NExt blog post will be more practical - Keep Human in the workflow -> Teacher mode experiments with LLM
+
+
+---
+
 AGENTS
 The core philosophy is moving from a "God-Mode" single agent to a **Team of Specialists** led by a **Director**.
 
 
-PLAN
+---
+
+
+PROBLEMES
 - productivity/metrique
 - problème: sert à justifier des décisions: biais de confirmation, ne fait pas confiance aux autres membres de l'équipe -> CONFIANCE, DERESPONSABILISER
 - problème: discussion où on s'adapte (ne comprend pas l'implicite) > effet pervers sur les autres discussions entre humains
 - problème: organisation, équipe, adoption
 - problème: flow / context switching : plus de code, plus de revue, plus de PR, plus de feeback avec des temps difference, plus de branches reliées entre elles, en attente de validation
-- intéressant: nouvelle interaction home/machine, la conversation -> sochratic method, This chain of thought
+
+---
+
+INTERESTING PARTS
+- intéressant: nouvelle interaction home/machine, la conversation -> socratic method, This chain of thought
 	- duck buddy, comments conversation
 	- Partner mode, explain changes, redo by hand
 - intéressant: chat window ou CLI AI => documentation dans l'IDE
@@ -36,10 +60,6 @@ If someone were to ask you, “Hey, do you want a really smart, eager, motivated
 Step 2: Feed it information
 
 Step 3: Let it cook
-
-
-
-
 
 ----
 ##  My LLM coding workflow going into 2026
@@ -151,6 +171,8 @@ Morten Rand-Hendriksen https://www.youtube.com/watch?v=yjLsHD9IzIA, Why we're gi
 	- "Nous n'avons pas décider ou aller maintenant avec l'IA"
 	- The word "Intelligence" ? => "Assisted technologies" 
 
+
+---
 
 
 ```
