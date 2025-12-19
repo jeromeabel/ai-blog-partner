@@ -44,6 +44,11 @@
 - [x] Coordinator instructions update
 - [x] Roadmap & documentation synchronization
 
+### Feedback & Feature Requests
+- Improve chunk process (use of "---", use of "##", use of "###"), keep quotes source, author link or make reference notes as ID. Improve quotes & commentary: If there is a link or a name, it is a reference; if not, it is my note.
+- not_ok.md: there are some interesting ideas
+- Keep quotes as foot notes in markdown
+- Writer can call save_tool
 ---
 
 ## Quick Links
