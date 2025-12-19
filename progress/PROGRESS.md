@@ -1,8 +1,8 @@
 # Progress
 
-**Current Phase:** Phase 3 - Planning
-**Next Task:** Create phase plan for Writer agent
-**Active Plan:** `progress/plans/phase3_writer.md` (to be created)
+**Current Phase:** Phase 4 - Planning
+**Next Task:** Start Analyzer foundation
+**Active Plan:** `progress/plans/phase4_analyzer_foundation.md`
 
 ---
 
@@ -20,16 +20,18 @@
 - [x] Curator agent (filter & organize)
 - [x] Two-phase workflow (Filter → Organize)
 - [x] Debugging & refinement (2025-12-18)
-  - Fixed file saving issues (save immediately after validation)
-  - Fixed template variable errors (changed `{blog_id}` → `<blog_id>`)
-  - Upgraded model for reliability (gemini-3-pro-preview)
-  - Added progress reporting & verbose mode
-  - Corrected filename convention (`2-draft_organized.md`)
 
-### ⏳ Phase 3: The Writer
-- [ ] Writer agent implementation
-- [ ] Section polishing workflow
-- [ ] Iterative feedback loop
+### ✅ Phase 3: The Writer
+- [x] Section manipulation tools (read, save, finalize)
+- [x] Writer agent implementation
+- [x] Scribr sub-agent integration
+- [x] Section-by-section polishing workflow
+- [x] Integration with coordinator & playground
+
+### ⏳ Phase 4: The Analyzer (Foundation)
+- [ ] Content analysis tools
+- [ ] Gap detection
+- [ ] Suggestion agent
 
 ---
 

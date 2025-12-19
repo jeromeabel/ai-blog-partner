@@ -11,7 +11,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
 # Agent Imports
-from blogger.agents import architect, curator, linguist, scribr
+from blogger.agents import architect, curator, linguist, scribr, writer
 
 # Load environment variables
 env_path = Path(__file__).parent / ".env"
@@ -22,6 +22,7 @@ AGENTS = {
     "linguist": linguist,
     "architect": architect,
     "curator": curator,
+    "writer": writer,
 }
 
 

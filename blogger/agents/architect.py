@@ -7,7 +7,7 @@ through interactive conversation.
 
 from google.adk.agents.llm_agent import Agent
 
-from blogger.agents.scribr import scribr
+from blogger.agents.scribr import create_scribr
 from blogger.utils.tools import (
     get_workflow_status_tool,
     infer_blog_id_tool,
@@ -29,5 +29,5 @@ architect = Agent(
         read_file_tool,
         save_step_tool,
     ],
-    sub_agents=[scribr],
+    sub_agents=[create_scribr()],
 )

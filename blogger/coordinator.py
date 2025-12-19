@@ -11,7 +11,15 @@ from google.adk.agents import Agent
 from google.adk.tools.function_tool import FunctionTool
 
 from blogger.agents.architect import architect
-from blogger.utils.tools import read_draft_tool, read_file_tool, save_step_tool
+from blogger.agents.curator import curator
+from blogger.agents.writer import writer
+from blogger.utils.tools import (
+    get_workflow_status_tool,
+    infer_blog_id_tool,
+    read_draft_tool,
+    read_file_tool,
+    save_step_tool,
+)
 from blogger.utils.utils import read_instructions
 
 # === COORDINATOR AGENT ===
@@ -24,8 +32,10 @@ coordinator = Agent(
 
 Current date: {datetime.datetime.now().strftime("%Y-%m-%d")}
 """,
-    sub_agents=[architect],
+    sub_agents=[architect, curator, writer],
     tools=[
+        FunctionTool(get_workflow_status_tool),
+        FunctionTool(infer_blog_id_tool),
         FunctionTool(read_draft_tool),
         FunctionTool(read_file_tool),
         FunctionTool(save_step_tool),

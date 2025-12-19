@@ -12,10 +12,12 @@ from blogger.agents.scribr import scribr
 from blogger.agents.linguist import linguist
 from blogger.agents.architect import architect
 from blogger.agents.curator import curator
+from blogger.agents.writer import writer
 
 __all__ = [
     "scribr",
     "linguist",
     "architect",
     "curator",
+    "writer",
 ]

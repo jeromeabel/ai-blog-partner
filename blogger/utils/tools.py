@@ -1,5 +1,7 @@
 import re
+import shutil
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
@@ -584,3 +586,198 @@ def validate_organization_tool(
             "errors": errors,
             "message": f"Organization validation failed: {'; '.join(errors)}"
         }
+
+
+# ============================================================================
+# Phase 3 Tools: Section Manipulation
+# ============================================================================
+
+def read_section_tool(blog_id: str, section_heading: str) -> dict:
+    """
+    Extract a specific section with surrounding context from 2-draft_organized.md.
+
+    Use this when the Writer agent needs to focus on polishing one section
+    at a time. It provides the section content plus the titles of the 
+    previous and next sections for context.
+
+    Args:
+        blog_id: Unique identifier for the blog
+        section_heading: The heading of the section to read (e.g., "Introduction")
+
+    Returns:
+        Success: {
+            "status": "success",
+            "section_heading": "...",
+            "section_content": "...",
+            "prev_section": "...",
+            "next_section": "..."
+        }
+        Error: {"status": "error", "message": "..."}
+    """
+    try:
+        organized_path = POSTS_DIR / blog_id / "2-draft_organized.md"
+        if not organized_path.exists():
+            return {
+                "status": "error",
+                "message": f"Organized draft not found for blog '{blog_id}'. Run Curator (Step 2) first."
+            }
+
+        with open(organized_path, "r") as f:
+            content = f.read()
+
+        headings = extract_headings(content, level=2)
+        if not headings:
+            return {
+                "status": "error",
+                "message": "No sections (## headings) found in the organized draft."
+            }
+
+        # Find best match for the requested heading
+        match = find_best_heading_match(section_heading, headings)
+        if not match:
+            available = [h['title'] for h in headings]
+            return {
+                "status": "error",
+                "message": f"Section '{section_heading}' not found. Available sections: {', '.join(available)}"
+            }
+
+        # Split content by headings
+        positions = [h['line_num'] for h in headings]
+        chunks = split_text_by_headings(content, positions)
+
+        # Map heading index to chunk index
+        has_pre_content = positions[0] > 0
+        chunk_offset = 1 if has_pre_content else 0
+        match_idx = headings.index(match)
+        
+        section_content = chunks[match_idx + chunk_offset]
+        
+        # Get context (prev/next titles)
+        prev_section = headings[match_idx - 1]['title'] if match_idx > 0 else None
+        next_section = headings[match_idx + 1]['title'] if match_idx < len(headings) - 1 else None
+
+        return {
+            "status": "success",
+            "section_heading": match['title'],
+            "section_content": section_content,
+            "prev_section": prev_section,
+            "next_section": next_section
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to read section: {str(e)}"}
+
+
+def save_section_tool(blog_id: str, section_heading: str, polished_content: str) -> dict:
+    """
+    Replace a section's content with its polished version in 2-draft_organized.md.
+
+    Args:
+        blog_id: Unique identifier for the blog
+        section_heading: The original heading of the section to replace
+        polished_content: The new, polished content for the section (must include heading)
+
+    Returns:
+        Success: {"status": "success", "blog_id": "...", "path": "...", "message": "..."}
+        Error: {"status": "error", "message": "..."}
+    """
+    try:
+        organized_path = POSTS_DIR / blog_id / "2-draft_organized.md"
+        if not organized_path.exists():
+            return {
+                "status": "error",
+                "message": f"Organized draft not found for blog '{blog_id}'."
+            }
+
+        with open(organized_path, "r") as f:
+            content = f.read()
+
+        headings = extract_headings(content, level=2)
+        match = find_best_heading_match(section_heading, headings)
+        if not match:
+            return {"status": "error", "message": f"Section '{section_heading}' not found."}
+
+        # Validation: Polished content must have a heading
+        if not polished_content.strip().startswith('## '):
+            return {
+                "status": "error",
+                "message": "Polished content must include the section heading (e.g., '## Title')."
+            }
+
+        # Validation: Heading must match the target section (fuzzy check)
+        new_headings = extract_headings(polished_content, level=2)
+        if not new_headings:
+            return {"status": "error", "message": "No heading found in polished content."}
+        
+        # We use a relaxed fuzzy match here (0.7) to allow for minor title improvements by the Writer
+        from blogger.utils.text_utils import fuzzy_match_score
+        if fuzzy_match_score(match['title'], new_headings[0]['title']) < 0.7:
+            return {
+                "status": "error",
+                "message": f"Heading in polished content ('{new_headings[0]['title']}') does not match target section ('{match['title']}')."
+            }
+
+        # Reconstruct the document
+        positions = [h['line_num'] for h in headings]
+        chunks = split_text_by_headings(content, positions)
+
+        has_pre_content = positions[0] > 0
+        chunk_offset = 1 if has_pre_content else 0
+        match_idx = headings.index(match)
+
+        # Replace the specific chunk
+        chunks[match_idx + chunk_offset] = polished_content.strip()
+
+        # Join chunks back together
+        new_content = '\n'.join(chunks)
+
+        with open(organized_path, "w") as f:
+            f.write(new_content)
+
+        return {
+            "status": "success",
+            "blog_id": blog_id,
+            "path": str(organized_path),
+            "message": f"Section '{match['title']}' updated successfully."
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to save section: {str(e)}"}
+
+
+def finalize_post_tool(blog_id: str) -> dict:
+    """
+    Create the final polished post by copying 2-draft_organized.md to 3-final.md.
+
+    Args:
+        blog_id: Unique identifier for the blog
+
+    Returns:
+        Success: {"status": "success", "final_path": "...", "message": "..."}
+        Error: {"status": "error", "message": "..."}
+    """
+    try:
+        source_path = POSTS_DIR / blog_id / "2-draft_organized.md"
+        dest_path = POSTS_DIR / blog_id / "3-final.md"
+
+        if not source_path.exists():
+            return {
+                "status": "error",
+                "message": f"Organized draft not found: {source_path}. Complete Step 2 first."
+            }
+
+        # Read content to add metadata
+        with open(source_path, "r") as f:
+            content = f.read()
+
+        # Add metadata footer
+        footer = f"\n\n---\n*Generated by AI Blog Partner on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*"
+        
+        with open(dest_path, "w") as f:
+            f.write(content + footer)
+
+        return {
+            "status": "success",
+            "final_path": str(dest_path),
+            "message": f"Final post created successfully at {dest_path}"
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to finalize post: {str(e)}"}
