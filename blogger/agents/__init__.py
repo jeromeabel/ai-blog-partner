@@ -13,6 +13,7 @@ from blogger.agents.linguist import linguist
 from blogger.agents.architect import architect
 from blogger.agents.curator import curator
 from blogger.agents.writer import writer
+from blogger.agents.analyzer import analyzer_agent as analyzer
 
 __all__ = [
     "scribr",
@@ -20,4 +21,5 @@ __all__ = [
     "architect",
     "curator",
     "writer",
+    "analyzer",
 ]

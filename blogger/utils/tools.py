@@ -1,6 +1,7 @@
 import re
 import shutil
 import urllib.request
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
@@ -781,3 +782,328 @@ def finalize_post_tool(blog_id: str) -> dict:
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to finalize post: {str(e)}"}
+# ============================================================================
+# ============================================================================
+# Phase 4 Tools: Content Analysis (Light Mode)
+# ============================================================================
+
+def detect_draft_complexity(draft_text: str) -> dict:
+    """
+    Calculate complexity metrics and score for a draft.
+
+    Pure function (NO LLM).
+
+    Args:
+        draft_text: The raw draft content
+
+    Returns:
+        dict: Metrics and complexity score
+    """
+    if not draft_text:
+        return {
+            "score": 0,
+            "suggested_mode": "light",
+            "metrics": {
+                "paragraph_count": 0,
+                "quote_count": 0,
+                "code_block_count": 0,
+                "languages": [],
+                "source_count": 0
+            }
+        }
+
+    # Use regex to split by blank lines (even if they contain spaces)
+    paragraphs = re.split(r'\n\s*\n', draft_text.strip())
+    paragraphs = [p for p in paragraphs if p.strip()]
+    paragraph_count = len(paragraphs)
+    
+    quotes = extract_quotes_with_sources(draft_text)
+    quote_count = len(quotes)
+    
+    code_blocks = count_code_blocks(draft_text)
+    code_block_count = code_blocks["count"]
+    
+    unique_sources = len(set(q["source"] for q in quotes if q["source"] != "Unknown"))
+    
+    # Heuristic complexity score (0-10)
+    # Weights: quotes(0.4), code(0.3), paragraph density(0.3)
+    quote_score = min(10, quote_count * 0.8)
+    code_score = min(10, code_block_count * 2.0)
+    density_score = min(10, paragraph_count / 10.0)
+    
+    score = (quote_score * 0.4) + (code_score * 0.3) + (density_score * 0.3)
+    score = round(min(10, score), 1)
+    
+    return {
+        "score": score,
+        "suggested_mode": "light",  # Phase 4 always suggests light
+        "metrics": {
+            "paragraph_count": paragraph_count,
+            "quote_count": quote_count,
+            "code_block_count": code_block_count,
+            "languages": code_blocks["languages"],
+            "source_count": unique_sources
+        }
+    }
+
+
+def extract_quotes_with_sources(draft_text: str) -> list[dict]:
+    """
+    Extract quotes and attempt to find their sources.
+
+    Detects:
+    - "Quote" — Author
+    - > Quote
+    - - Source: Author
+
+    Args:
+        draft_text: The raw draft content
+
+    Returns:
+        list[dict]: List of {text, source, line_number}
+    """
+    quotes = []
+    lines = draft_text.splitlines()
+    
+    # Pattern 1: Blockquotes (> quote)
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        if line.startswith(">"):
+            quote_text = line[1:].strip()
+            source = "Unknown"
+            
+            # Check next line for attribution
+            if i + 1 < len(lines):
+                next_line = lines[i+1].strip()
+                if next_line.startswith(("- ", "— ", "-- ")):
+                    source = next_line.lstrip("-— ").strip()
+                    if source.lower().startswith("source:"):
+                        source = source[7:].strip()
+                    i += 1
+            
+            quotes.append({
+                "text": quote_text,
+                "source": source,
+                "line_number": i
+            })
+        
+        # Pattern 2: Inline quotes with attribution ("Quote" — Author)
+        elif '"' in line:
+            matches = re.findall(r'"([^\"]+)"\s*[—\-\-]+\s*([^,\.\n]+)', line)
+            for text, src in matches:
+                quotes.append({
+                    "text": text.strip(),
+                    "source": src.strip(),
+                    "line_number": i
+                })
+            
+            # Pattern 3: Simple quoted text "Quote" [source: URL]
+            if not matches:
+                simple_matches = re.findall(r'"([^\"]+)"\s*\[source:\s*([^\]]+)\]', line)
+                for text, src in simple_matches:
+                    quotes.append({
+                        "text": text.strip(),
+                        "source": src.strip(),
+                        "line_number": i
+                    })
+
+        i += 1
+        
+    return quotes
+
+
+def count_code_blocks(draft_text: str) -> dict:
+    """
+    Count markdown code blocks and identify languages.
+
+    Args:
+        draft_text: The raw draft content
+
+    Returns:
+        dict: {count, languages}
+    """
+    # Regex for markdown code fences
+    pattern = r"```(\w*)\n"
+    matches = re.findall(pattern, draft_text)
+    
+    # Matches both start and end fences, so divide by 2
+    # Filter out empty strings from languages (closing fences usually have no language)
+    languages = [L for L in matches if L]
+    
+    return {
+        "count": len(matches) // 2,
+        "languages": list(set(languages))
+    }
+
+
+def extract_main_topics(draft_text: str) -> list[str]:
+    """
+    Extract potential main topics using keyword frequency.
+
+    Pure function (NO LLM).
+
+    Args:
+        draft_text: The raw draft content
+
+    Returns:
+        list[str]: Top 3-5 keywords
+    """
+    if not draft_text:
+        return []
+
+    # Simple stop words
+    stop_words = {
+        "the", "and", "a", "to", "of", "in", "i", "is", "that", "it", "on", "you", 
+        "this", "for", "with", "was", "as", "are", "with", "but", "have", "not",
+        "be", "at", "or", "from", "an", "my", "by"
+    }
+    
+    # Clean and tokenize
+    words = re.findall(r'\b\w{4,}\b', draft_text.lower())
+    filtered_words = [w for w in words if w not in stop_words]
+    
+    if not filtered_words:
+        return []
+        
+    counts = Counter(filtered_words)
+    
+    # Return top 5
+    return [word for word, count in counts.most_common(5)]
+
+
+def save_analysis_tool(blog_id: str, analysis_data: dict) -> dict:
+    """
+    Generate and save 0-analysis.md with YAML front-matter.
+
+    Args:
+        blog_id: Unique identifier for the blog
+        analysis_data: Data structure from Analyzer agent
+
+    Returns:
+        Success: {"status": "success", "path": "..."}
+        Error: {"status": "error", "message": "..."}
+    """
+    try:
+        # Expected analysis_data structure:
+        # {
+        #   "type": "narrative"|"practical"|"mixed",
+        #   "complexity": "low"|"medium"|"high",
+        #   "metrics": {...},
+        #   "topics": [...],
+        #   "recommended_mode": "quote-driven"|"topic-driven",
+        #   "summary": "Human-readable summary..."
+        # }
+        
+        metrics = analysis_data.get("metrics", {})
+        
+        # Build topics list for YAML
+        topics_yaml = ""
+        for t in analysis_data.get('topics', []):
+            topics_yaml += f"  - {t}\n"
+            
+        # Build topics list for Markdown
+        topics_md = ""
+        for i, t in enumerate(analysis_data.get('topics', [])):
+            topics_md += f"{i+1}. **{t.title()}**\n"
+        
+        yaml_content = f"""
+--- 
+type: {analysis_data.get('type', 'mixed')}
+complexity: {analysis_data.get('complexity', 'medium')}
+mode: light
+detected_quote_count: {metrics.get('quote_count', 0)}
+detected_code_blocks: {metrics.get('code_block_count', 0)}
+main_topics:
+{topics_yaml.rstrip()}
+recommended_architect_mode: {analysis_data.get('recommended_mode', 'topic-driven')}
+---
+
+# Draft Analysis (Light)
+
+## Summary
+{analysis_data.get('summary', 'No summary provided.')}
+
+## Detected Topics
+{topics_md.rstrip()}
+
+## Complexity Assessment
+- **Score:** {analysis_data.get('score', 'N/A')}/10
+- **Rationale:** {analysis_data.get('rationale', 'Based on content metrics.')}
+- **Suggested Mode:** Light analysis sufficient for now.
+
+---
+*This analysis was generated automatically. Review the summary, then proceed to Architect for outline creation.*
+"""
+        
+        output_path = POSTS_DIR / blog_id / "0-analysis.md"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        with open(output_path, "w") as f:
+            f.write(yaml_content)
+            
+        return {
+            "status": "success",
+            "blog_id": blog_id,
+            "path": str(output_path)
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to save analysis: {str(e)}"}
+
+
+def read_analysis_tool(blog_id: str) -> dict:
+    """
+    Read 0-analysis.md and parse its YAML front-matter.
+
+    Args:
+        blog_id: Unique identifier for the blog
+
+    Returns:
+        Success: {"status": "success", "data": {...}, "summary": "..."}
+        Error: {"status": "error", "message": "..."}
+    """
+    try:
+        analysis_path = POSTS_DIR / blog_id / "0-analysis.md"
+        if not analysis_path.exists():
+            return {"status": "error", "message": f"Analysis file not found for blog '{blog_id}'."}
+            
+        with open(analysis_path, "r") as f:
+            content = f.read()
+            
+        # Very simple YAML parser for our specific format
+        if not content.startswith("---"):
+            return {"status": "error", "message": "Invalid analysis file format (missing front-matter)."}
+            
+        parts = content.split("---", 2)
+        if len(parts) < 3:
+            return {"status": "error", "message": "Invalid analysis file format (incomplete front-matter)."}
+            
+        yaml_text = parts[1]
+        summary_text = parts[2].strip()
+        
+        data = {}
+        for line in yaml_text.strip().split("\n"):
+            if ":" in line:
+                key, val = line.split(":", 1)
+                key = key.strip()
+                val = val.strip()
+                
+                # Handle simple lists
+                if not val and key == "main_topics":
+                    data[key] = []
+                elif key.startswith("- "):
+                    if "main_topics" in data:
+                        data["main_topics"].append(key[2:].strip())
+                else:
+                    data[key] = val
+            elif line.strip().startswith("- "):
+                if "main_topics" in data:
+                    data["main_topics"].append(line.strip()[2:].strip())
+                    
+        return {
+            "status": "success",
+            "data": data,
+            "summary": summary_text
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to read analysis: {str(e)}"}

@@ -28,10 +28,15 @@
 - [x] Section-by-section polishing workflow
 - [x] Integration with coordinator & playground
 
-### ⏳ Phase 4: The Analyzer (Foundation)
-- [ ] Content analysis tools
-- [ ] Gap detection
-- [ ] Suggestion agent
+### ✅ Phase 4: The Analyzer (Foundation)
+- [x] Content analysis tools
+- [x] Gap detection (Light mode analysis)
+- [x] Suggestion agent (Analyzer Agent)
+
+### ⏳ Phase 5: Analyzer Deep Mode
+- [ ] Chunk extraction
+- [ ] Connection mapping
+- [ ] Deep mode strategy
 
 ---
 
