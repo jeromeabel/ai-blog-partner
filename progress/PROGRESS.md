@@ -45,10 +45,21 @@
 - [x] Roadmap & documentation synchronization
 
 ### Feedback & Feature Requests
+- Rewrite current section files does not work. The read section tool output draft_organized with chunk, not the most recent version of section like section_1.md
+- Difference between SKILLS https://agentskills.io/what-are-skills and Agents in ADK
+- Change LLM API: Claude API instead of GEMINI -> models, centralize config? https://google.github.io/adk-docs/agents/models/#using-anthropic-models
+- Analysis process too long - Needs to save tokens
+- It seems that a lot of events send all characters from draft: time consuming, token consuming?
+- Analysis document efficient, useful for next agents?
 - Improve chunk process (use of "---", use of "##", use of "###"), keep quotes source, author link or make reference notes as ID. Improve quotes & commentary: If there is a link or a name, it is a reference; if not, it is my note.
 - not_ok.md: there are some interesting ideas
 - Keep quotes as foot notes in markdown
 - Writer can call save_tool
+- English coach trigger?
+- Does AGENTS.md meets https://agents.md/ recommandations?
+- Configure Gemini CLI to use AGENTS.md in .gemini/settings.json: `{ "contextFileName": "AGENTS.md" }`
+- FUTURE: save tokens and analyze better with vector base/chunk/RAG
+
 ---
 
 ## Quick Links

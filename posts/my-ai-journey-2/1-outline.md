@@ -22,5 +22,7 @@
 *   **Introspection:** We need to analyze our own gestures. How do we explain code? How do we debug? (The "Socratic" method with AI).
 *   **Sharing:** The way out is through sharing real experiences, redesigning workflows, and experimenting with new usage.
 
+More high level tasks for entry engineers
+
 ## 5. Conclusion & What Comes Next
 *   **Teaser:** The next post will focus on the practical "How": Context Engineering & Teacher Mode.

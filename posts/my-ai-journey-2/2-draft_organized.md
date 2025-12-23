@@ -126,6 +126,11 @@ You have certainly seen A lot of video about coding with AI, shows a case with a
 
 ## 3. The Dehumanization Trap
 
+> There is interest in how agent-heavy workflows might affect communication, empathy, and professional growth beyond technical skills. (AI and developer productivity: Insights from Microsoft, Google, and GitHub researchers)
+
+
+All these reports output results that are not unanime, there are bad experiences, bad use cases. List & listen to negative impacts/experiences to address them would increase the positive impact
+
 <!-- Chunk #55 -->
 AI Makes Everyone Average. Here Is The Simple Antidote.
 https://alifeengineered.substack.com/p/ai-makes-everyone-average-here-is
@@ -210,6 +215,14 @@ Agent Quality in a Non-Deterministic World.
 • Travailler avec un assistant "non déterministe". L'IA est un assistant, un copilote. Le développeur reste le pilote.
 
 ## 4. The Opportunities (Evergreen Skills)
+
+
+Coding is more
+
+> Only a small fraction of developer time is spent writing code. Coding accounts for roughly 14 percent of a typical engineer’s day. 
+
+> The pressure to ship faster with AI assistance can lead to a culture where understanding code becomes secondary to producing it. Developers now find themselves in environments where asking AI is not just acceptable but expected, potentially stunting their growth trajectory. https://codebytom.blog/2025/07/the-hidden-cost-of-ai-reliance
+
 
 <!-- Chunk #7 -->
 AGENTS

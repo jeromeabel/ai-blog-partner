@@ -3,6 +3,9 @@
 
 # TITLE: My Ai-Journey part 2: A Balanced Shift
 
+
+Exploring an evergreen art, made 10x more relevant by AI https://refactoring.fm/p/managing-context-for-ai-coding
+
 ## AUDIENCE
 FOCUS on developers, teams tech industry: human feeling, secure jobs, be ready, share experiences
 
@@ -13,6 +16,19 @@ FOCUS on developers, teams tech industry: human feeling, secure jobs, be ready, 
 - Opportunities, embrace chaos. the interesting parts (specs/code/artefacts, role of coding/high level task, conversations/ihm une nouvelle façon de communiquer avec les machines au delà de la commande, deliberate learning/invest in mentoring & learning, orchestrator/more PM skills, ship prototypes / test ideas in YOLO MODE, dev workflows (introspection de ces propres gestes, vocabulaires, tâches) ), find joy/pleasure in craft
 - Open questions: what and how to get the hard skills fondations/hard parts
 - ENDING: NExt blog post will be more practical - Keep Human in the workflow -> Teacher mode experiments with LLM
+
+
+---
+
+### The Junior Reviewer Paradox
+This is the most dangerous shift I’ve seen. Historically, we had a perfect learning progression for junior engineers: you write small, isolated pieces of code, you break things, you fix them, and you slowly build a mental model of the system.
+
+AI disrupts this flow. As Meri Williams argues, entry-level engineers are no longer writing code—they are generating it. Suddenly, a junior dev is expected to **review** code they didn't write, often using patterns they don't understand.
+
+> *"A lot of entry level engineers don’t review much code. They’re not yet trusted to do PR reviews... But with AI, they’re reviewing code all the time."*
+
+We are asking people with the least context to perform the task that requires the most intuition: code review. This leads to the "LGTM" syndrome, where superficially convincing AI code gets merged because the reviewer lacks the battle scars to spot the edge case hiding in line 42.
+
 
 
 ---
